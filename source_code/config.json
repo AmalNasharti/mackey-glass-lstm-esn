@@ -1,0 +1,24 @@
+{
+    "seed": 42, 
+    
+    "data": {
+        "train_end": 6000,
+        "val_end": 7000
+    },
+
+    "lstm": {
+        "input_size": 1,
+        "hidden_size": 16,
+        "output_size": 1,
+        "sequence_length": 20,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "num_epochs": 200,
+        "patience": 15
+    },
+
+    "esn": {
+        "reservoir_size": 50,
+        "spectral_radius": 0.9
+    }
+}
