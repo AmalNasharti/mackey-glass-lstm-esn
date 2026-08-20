@@ -19,6 +19,11 @@
 
     "esn": {
         "reservoir_size": 50,
-        "spectral_radius": 0.9
+        "spectral_radius": 0.9,
+        "reservoir_connectivity": 0.5,
+        "input_scaling": 0.5,
+        "washout": 100,
+        "alpha": 0.1,
+        "ridge": 1e-6
     }
 }
