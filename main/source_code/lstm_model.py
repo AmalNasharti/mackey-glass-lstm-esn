@@ -162,7 +162,8 @@ def train_model(
     optimizer,
     device,
     num_epochs,
-    patience
+    patience,
+    verbose=True
 ):
     """
     Train the model using mini-batch gradient descent and evaluate it
@@ -185,7 +186,8 @@ def train_model(
     train_losses = []
     val_losses = []
 
-    print("Starting Training...")
+    if verbose:
+        print("Starting Training...")
 
     for epoch in range(num_epochs):
         # Training
@@ -221,11 +223,13 @@ def train_model(
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
 
-        print(
-            f"Epoch {epoch + 1:3d} | "
-            f"Train: {train_loss:.6f} | "
-            f"Val: {val_loss:.6f}"
-        )
+        if verbose: 
+            print(
+                f"Epoch {epoch + 1:3d} | "
+                f"Train: {train_loss:.6f} | "
+                f"Val: {val_loss:.6f}"
+            )
+            
         # Early stopping
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -234,11 +238,13 @@ def train_model(
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
-                print(f"Early stopping at epoch {epoch + 1}")
+                if verbose:
+                    print(f"Early stopping at epoch {epoch + 1}")
                 model.load_state_dict(best_state)
                 break
 
-    print("Training complete.")
+    if verbose: 
+        print("Training complete.")
 
     return train_losses, val_losses
 

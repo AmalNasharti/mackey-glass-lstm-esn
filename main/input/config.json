@@ -1,0 +1,29 @@
+{
+    "seed": 42, 
+    
+    "data": {
+        "train_end": 6000,
+        "val_end": 7000
+    },
+
+    "lstm": {
+        "input_size": 1,
+        "hidden_size": 128,
+        "output_size": 1,
+        "sequence_length": 100,
+        "batch_size": 16,
+        "learning_rate": 0.0013258369731779726,
+        "num_epochs": 200,
+        "patience": 15
+    },
+
+    "esn": {
+        "reservoir_size": 61,
+        "spectral_radius": 0.7940686533665776,
+        "reservoir_connectivity": 0.015050730529450624,
+        "input_scaling": 0.4226170080703271,
+        "washout": 300,
+        "alpha": 0.2310128161294586,
+        "ridge": 1.3324940320570245e-06
+    }
+}

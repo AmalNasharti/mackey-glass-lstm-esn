@@ -4,9 +4,9 @@ import pandas as pd
 import random
 import numpy as np
 import torch
-import esn_model
-import lstm_model
-import utils
+from main.source_code import esn_model
+from main.source_code import lstm_model
+from main.source_code import utils
 
 
 # ======================================
@@ -14,11 +14,11 @@ import utils
 # ======================================
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = BASE_DIR / "input" / "mg17.csv"
-OUTPUT_DIR = BASE_DIR / "output"
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "main" / "input" / "input.csv"
+OUTPUT_DIR = BASE_DIR / "main" / "output"
 
-CONFIG_PATH = BASE_DIR / "source_code" / "config.json"
+CONFIG_PATH = BASE_DIR / "main" / "input" / "config.json"
 
 with open(CONFIG_PATH, "r") as file:
     config = json.load(file)
@@ -27,7 +27,7 @@ data_config = config["data"]
 lstm_config = config["lstm"]
 esn_config = config["esn"]
 
-mg17_series = pd.read_csv(DATA_PATH)['mg17']
+input_series = pd.read_csv(DATA_PATH)['value']
 
 # ======================================
 # SET SEED FOR REPRODUCIBILITY
@@ -44,7 +44,7 @@ if torch.cuda.is_available():
 # ======================================
 # DATA PREPROCESSING
 # ======================================
-train, val, test = utils.split_data(mg17_series, data_config['train_end'], data_config['val_end'])
+train, val, test = utils.split_data(input_series, data_config['train_end'], data_config['val_end'])
 train_norm, val_norm, test_norm, train_mean, train_std = utils.zscore_normalize(train, val, test)
 
 # ======================================
@@ -108,8 +108,8 @@ results_df.to_csv(OUTPUT_DIR / "results.csv", index=False)
 
 # Save graphs
 utils.save_original_time_series(
-    mg17_series,
-    save_path=OUTPUT_DIR / "mackey_glass_series.png"
+    input_series,
+    save_path=OUTPUT_DIR / "input_series.png"
 )
 
 utils.save_losses(
