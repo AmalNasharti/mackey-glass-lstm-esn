@@ -2,13 +2,22 @@ import gradio as gr
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
+from pathlib import Path
 
 from main.source_code import utils
 from main.source_code import lstm_model
 from main.source_code import esn_model
+from fine_tuning.source_code import tuning
 
 NUM_EPOCHS = 100
 PATIENCE = 5
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+GUI_OUTPUT_DIR = BASE_DIR / "gui" / "output"
+SEARCH_SPACE_PATH_LSTM = BASE_DIR / "fine_tuning"/ "input" / "search_spaces" / "lstm_search_space.json"
+CONFIGS_PATH_LSTM = GUI_OUTPUT_DIR / "configs_lstm.csv"
+RESULTS_PATH_LSTM = GUI_OUTPUT_DIR / "results_lstm.csv"
+BEST_RESULTS_PATH_LSTM = GUI_OUTPUT_DIR / "best_result_lstm.csv"
 
 def load_dataset(file):
     """
@@ -537,3 +546,163 @@ def run_esn_from_gui(
         float(esn_results["inference_time"]),
         prediction_plot
     )
+
+def run_random_search_from_gui(
+    model,
+    input_series,
+    train_norm,
+    val_norm,
+    n_trials,
+    n_seeds,
+    search_space_path,
+    configs_path,
+    results_path,
+    best_results_path
+):
+    """
+    Run random hyperparameter tuning from the GUI.
+
+    A new random search is started every time the function is called.
+    Each sampled configuration is evaluated over multiple random seeds,
+    and the configuration with the lowest mean validation loss is returned.
+
+    Parameters
+    ----------
+    model : str
+        Model to optimize. Must be either "lstm" or "esn".
+    input_series : pd.Series
+        Original input time series.
+    train_norm : pd.Series
+        Normalized training set.
+    val_norm : pd.Series
+        Normalized validation set.
+    n_trials : int
+        Number of random hyperparameter configurations to evaluate.
+    n_seeds : int
+        Number of random seeds used for each configuration.
+    search_space_path : str or Path
+        Path to the JSON file containing the hyperparameter search space.
+    configs_path : str or Path
+        Path where generated configurations are saved.
+    results_path : str or Path
+        Path where tuning results are saved.
+    best_results_path : str or Path
+        Path where the best tuning result is saved.
+
+    Returns
+    -------
+    best_config : dict
+        Best hyperparameter configuration found.
+    best_val_loss : float
+        Mean validation loss of the best configuration.
+    """
+
+    # Check that a dataset has been uploaded
+    if input_series is None:
+        raise gr.Error(
+            "No dataset loaded. Please upload a CSV file in the Data tab "
+            "before starting hyperparameter tuning."
+        )
+
+    # Check that the dataset has been split
+    if train_norm is None or val_norm is None:
+        raise gr.Error(
+            "The dataset has not been split yet. Please define and apply "
+            "the train/validation/test split in the Data tab before "
+            "starting hyperparameter tuning."
+        )
+
+    # Check tuning parameters
+    n_trials = int(n_trials)
+    n_seeds = int(n_seeds)
+
+    if n_trials < 1:
+        raise gr.Error(
+            "The number of trials must be at least 1."
+        )
+
+    if n_seeds < 1:
+        raise gr.Error(
+            "The number of seeds must be at least 1."
+        )
+
+    # Select computation device
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    seeds = range(n_seeds)
+
+    # Generate random hyperparameter configurations
+    configs = tuning.generate_configs(
+        model,
+        search_space_path,
+        n_trials,
+        configs_path,
+        search_seed=42
+    )
+
+    # Run a new random search from scratch
+    best_config,_ = tuning.random_search(
+        model,
+        train_norm,
+        val_norm,
+        device,
+        configs,
+        seeds,
+        results_path,
+        best_results_path,
+        restart=True
+    )
+
+    # Convert Pandas Series to dictionary
+    if hasattr(best_config, "to_dict"):
+        best_config = best_config.to_dict()
+
+    # Convert NumPy scalar values to standard Python values
+    best_config = {
+        key: value.item() if hasattr(value, "item") else value
+        for key, value in best_config.items()
+    }
+
+    return best_config
+
+def run_lstm_tuning_gui(
+    input_series,
+    train_norm,
+    val_norm,
+    n_trials,
+    n_seeds
+):
+    """
+    Run LSTM random search from the GUI and return only the
+    user-editable hyperparameters of the best configuration.
+    """
+
+    best_config = run_random_search_from_gui(
+        model="lstm",
+        input_series=input_series,
+        train_norm=train_norm,
+        val_norm=val_norm,
+        n_trials=n_trials,
+        n_seeds=n_seeds,
+        search_space_path=SEARCH_SPACE_PATH_LSTM,
+        configs_path=CONFIGS_PATH_LSTM,
+        results_path=RESULTS_PATH_LSTM,
+        best_results_path=BEST_RESULTS_PATH_LSTM
+    )
+
+    # Keep only hyperparameters editable from the GUI
+    editable_parameters = [
+        "hidden_size",
+        "sequence_length",
+        "batch_size",
+        "learning_rate"
+    ]
+
+    best_config = {
+        key: best_config[key]
+        for key in editable_parameters
+    }
+
+    return best_config

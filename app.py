@@ -273,6 +273,76 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 ]
             )
 
+            with gr.Accordion(
+                "Automatic Hyperparameter Tuning",
+                open=False
+            ):
+
+                gr.Markdown(
+                    """
+                    Random search evaluates multiple LSTM hyperparameter configurations
+                    and selects the one with the lowest mean validation MSE.
+
+                    **Warning:** LSTM hyperparameter tuning may take several hours when
+                    running on CPU.
+
+                    For a quick test, it is recommended to use:
+                    - `trials = 5`
+                    - `seeds = 1`
+
+                    A more extensive search performed with `trials = 30` and `seeds = 5`
+                    obtained the following best configuration:
+
+                    - Hidden size: `128`
+                    - Sequence length: `100`
+                    - Batch size: `16`
+                    - Learning rate: `0.0013258369731779726`
+                    - Number of epochs: `200`
+                    - Patience: `15`
+                    - Mean validation MSE: `6.0661e-07`
+                    - Standard deviation: `2.0493e-07`
+                    """
+                )
+
+                with gr.Row():
+
+                    lstm_n_trials = gr.Number(
+                        value=5,
+                        label="Number of trials",
+                        precision=0
+                    )
+
+                    lstm_n_seeds = gr.Number(
+                        value=1,
+                        label="Number of seeds",
+                        info="Number of training runs with different random seeds used to evaluate each hyperparameter configuration.",
+                        precision=0
+                    )
+
+                start_lstm_tuning_button = gr.Button(
+                    "Start Random Search",
+                    variant="primary"
+                )
+
+                best_lstm_config_output = gr.JSON(
+                    label="Best LSTM Configuration"
+                )
+
+                start_lstm_tuning_button.click(
+                    fn=utils.run_lstm_tuning_gui,
+                    inputs=[
+                        input_series_state,
+                        train_norm_state,
+                        val_norm_state,
+                        lstm_n_trials,
+                        lstm_n_seeds
+                    ],
+                    outputs=[
+                        best_lstm_config_output
+                    ]
+                )
+            
+
         # ====================================================
         # ESN
         # ====================================================

@@ -11,6 +11,9 @@ import random
 import numpy as np
 from pathlib import Path
 
+PATIENCE = 5
+NUM_EPOCHS = 100
+
 def sample_lstm_config(search_space):
     """
     Randomly sample one LSTM hyperparameter configuration.
@@ -49,9 +52,9 @@ def sample_lstm_config(search_space):
             np.log10(search_space["learning_rate"][1])
         )),
 
-        "num_epochs": 200,
+        "num_epochs": NUM_EPOCHS,
 
-        "patience": 15
+        "patience": PATIENCE
     }
 
     return config
