@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from pathlib import Path
+import shutil
 
 from main.source_code import utils
 from main.source_code import lstm_model
@@ -14,10 +15,18 @@ PATIENCE = 5
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 GUI_OUTPUT_DIR = BASE_DIR / "gui" / "output"
+
+GUI_INPUT_DIR = BASE_DIR / "gui" / "input"
+
 SEARCH_SPACE_PATH_LSTM = BASE_DIR / "fine_tuning"/ "input" / "search_spaces" / "lstm_search_space.json"
 CONFIGS_PATH_LSTM = GUI_OUTPUT_DIR / "configs_lstm.csv"
 RESULTS_PATH_LSTM = GUI_OUTPUT_DIR / "results_lstm.csv"
 BEST_RESULTS_PATH_LSTM = GUI_OUTPUT_DIR / "best_result_lstm.csv"
+
+SEARCH_SPACE_PATH_ESN = BASE_DIR / "fine_tuning" / "input" / "search_spaces" / "esn_search_space.json"
+CONFIGS_PATH_ESN = GUI_OUTPUT_DIR / "configs_esn.csv"
+RESULTS_PATH_ESN = GUI_OUTPUT_DIR / "results_esn.csv"
+BEST_RESULTS_PATH_ESN = GUI_OUTPUT_DIR / "best_result_esn.csv"
 
 def load_dataset(file):
     """
@@ -53,12 +62,46 @@ def load_dataset(file):
     # Dataset information displayed in the GUI
     info = (
         f"Dataset loaded successfully.\n"
-        f"Number of samples: {len(df)}\n"
+        f"Num ber of samples: {len(df)}\n"
         f"Number of columns: {len(df.columns)}\n"
         f"Selected column: value"
     )
 
     return input_series, info
+
+def save_dataset(file):
+    """
+    Save the uploaded CSV file in the GUI input directory.
+
+    Parameters
+    ----------
+    file : str
+        Path to the CSV file uploaded through the GUI.
+
+    Returns
+    -------
+    message : str
+        Confirmation message containing the saved file name.
+    """
+
+    if file is None:
+        raise gr.Error(
+            "No dataset loaded. Please upload a CSV file first."
+        )
+
+    # Get original file name
+    source_path = Path(file)
+
+    # Destination inside gui/input
+    destination_path = GUI_INPUT_DIR / source_path.name
+
+    # Copy uploaded file
+    shutil.copy2(
+        source_path,
+        destination_path
+    )
+
+    return f"Dataset saved as `{source_path.name}`."
 
 def split_and_normalize(input_series, train_end, val_end):
     """
@@ -704,5 +747,32 @@ def run_lstm_tuning_gui(
         key: best_config[key]
         for key in editable_parameters
     }
+
+    return best_config
+
+def run_esn_tuning_gui(
+    input_series,
+    train_norm,
+    val_norm,
+    n_trials,
+    n_seeds
+):
+    """
+    Run ESN random search from the GUI and return only the
+    user-editable hyperparameters of the best configuration.
+    """
+
+    best_config = run_random_search_from_gui(
+        model="esn",
+        input_series=input_series,
+        train_norm=train_norm,
+        val_norm=val_norm,
+        n_trials=n_trials,
+        n_seeds=n_seeds,
+        search_space_path=SEARCH_SPACE_PATH_ESN,
+        configs_path=CONFIGS_PATH_ESN,
+        results_path=RESULTS_PATH_ESN,
+        best_results_path=BEST_RESULTS_PATH_ESN
+    )
 
     return best_config

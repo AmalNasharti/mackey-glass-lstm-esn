@@ -20,6 +20,9 @@ OUTPUT_DIR = BASE_DIR / "main" / "output"
 
 CONFIG_PATH = BASE_DIR / "main" / "input" / "config.json"
 
+WEIGHTS_PATH_LSTM = OUTPUT_DIR / "best_params_lstm.pt"
+WEIGHTS_PATH_ENS = OUTPUT_DIR / "best_params_ens.pt"
+
 with open(CONFIG_PATH, "r") as file:
     config = json.load(file)
 
@@ -51,7 +54,7 @@ train_norm, val_norm, test_norm, train_mean, train_std = utils.zscore_normalize(
 # LSTM
 # ======================================
 # Run LSTM
-lstm_results = lstm_model.run_lstm(train_norm, val_norm, test_norm, lstm_config, device)
+lstm_results = lstm_model.run_lstm(train_norm, val_norm, test_norm, lstm_config, device, WEIGHTS_PATH_LSTM)
 
 # Return predictions and targets to the original scale
 y_train_pred_lstm = utils.inverse_zscore(lstm_results['train_pred'], train_mean, train_std)
@@ -70,7 +73,7 @@ test_mse_lstm  = utils.mse(y_test_actual_lstm, y_test_pred_lstm)
 # ESN
 # ======================================
 # Run ESN
-esn_results = esn_model.run_esn(train_norm, val_norm, test_norm, esn_config, device)
+esn_results = esn_model.run_esn(train_norm, val_norm, test_norm, esn_config, device, WEIGHTS_PATH_ENS)
 
 # Return predictions and targets to the original scale
 y_train_pred_esn = utils.inverse_zscore(esn_results['train_pred'], train_mean, train_std)

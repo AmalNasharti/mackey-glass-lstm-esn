@@ -69,6 +69,21 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 ]
             )
 
+            # Save uploaded dataset inside gui/input
+            save_dataset_button = gr.Button(
+                "Save Dataset",
+                variant="primary"
+            )
+
+            save_dataset_message = gr.Markdown()
+
+            # Save dataset when the button is pressed
+            save_dataset_button.click(
+                fn=utils.save_dataset,
+                inputs=csv_file,
+                outputs=save_dataset_message
+            )
+
             # -------------------------
             # 2. Visualize time series
             # -------------------------
@@ -273,6 +288,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 ]
             )
 
+            # Hyperparameter Tuning
             with gr.Accordion(
                 "Automatic Hyperparameter Tuning",
                 open=False
@@ -470,6 +486,64 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     esn_prediction_plot
                 ]
             )
+
+            # Hyperparameter Tuning
+            with gr.Accordion(
+                "Automatic Hyperparameter Tuning",
+                open=False
+            ):
+
+                gr.Markdown(
+                    """
+                    Random search evaluates different ESN hyperparameter configurations
+                    and returns the configuration with the best validation performance.
+
+                    ESN tuning is generally faster than LSTM tuning.
+
+                    Suggested values:
+                    - `trials = 150`
+                    - `runs per configuration = 10`
+                    """
+                )
+
+                with gr.Row():
+
+                    esn_n_trials = gr.Number(
+                        value=150,
+                        label="Number of trials",
+                        precision=0
+                    )
+
+                    esn_n_seeds = gr.Number(
+                        value=10,
+                        label="Runs per configuration",
+                        info=(
+                            "Number of runs with different random seeds used "
+                            "to evaluate each configuration."
+                        ),
+                        precision=0
+                    )
+
+                start_esn_tuning_button = gr.Button(
+                    "Start Random Search",
+                    variant="primary"
+                )
+
+                best_esn_config_output = gr.JSON(
+                    label="Best ESN Configuration"
+                )
+
+                start_esn_tuning_button.click(
+                    fn=utils.run_esn_tuning_gui,
+                    inputs=[
+                        input_series_state,
+                        train_norm_state,
+                        val_norm_state,
+                        esn_n_trials,
+                        esn_n_seeds
+                    ],
+                    outputs=best_esn_config_output
+                )
 
 
 # ============================================================

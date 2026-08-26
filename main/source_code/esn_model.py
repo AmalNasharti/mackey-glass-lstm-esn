@@ -133,7 +133,16 @@ class EchoStateNetwork(nn.Module):
         self.register_buffer("W_in", W_in)
 
         # Output weights are computed during training
-        self.W_out = None
+        self.register_buffer(
+            "W_out",
+            torch.zeros(
+                reservoir_size,
+                1,
+                dtype=torch.float32
+            )
+        )
+
+        self.fitted = False
 
     def run_reservoir(self, input_data):
         """
@@ -179,7 +188,6 @@ class EchoStateNetwork(nn.Module):
         target_data : torch.Tensor
             Training targets with shape (T, 1).
         """
-
         reservoir_states = self.run_reservoir(input_data)
 
         # Discard the washout phase
@@ -199,6 +207,8 @@ class EchoStateNetwork(nn.Module):
             X.T @ Y
         )
 
+        self.fitted = True
+
     def forward(self, input_data):
         """
         Generate predictions for an input sequence.
@@ -214,7 +224,7 @@ class EchoStateNetwork(nn.Module):
             Predicted values with shape (T, 1).
         """
 
-        if self.W_out is None:
+        if not self.fitted:
             raise RuntimeError("The ESN must be fitted before prediction.")
 
         reservoir_states = self.run_reservoir(input_data)
@@ -223,7 +233,7 @@ class EchoStateNetwork(nn.Module):
 
         return predictions
 
-def run_esn(train_norm, val_norm, test_norm, config, device):
+def run_esn(train_norm, val_norm, test_norm, config, device, weights_path, load_pretrained=False):
     """
     Run the complete ESN fitting and inference pipeline.
 
@@ -244,6 +254,11 @@ def run_esn(train_norm, val_norm, test_norm, config, device):
         ESN configuration containing the model hyperparameters.
     device : torch.device
         Device used for model computation.
+    weights_path: str or Path
+        Path where to save the weight of the lstm
+    load_pretrained: Bool
+        If True it uses the weights from a previous run, without
+        retraining the network.
 
     Returns
     -------
@@ -272,16 +287,22 @@ def run_esn(train_norm, val_norm, test_norm, config, device):
     X_val = X_val.to(device)
     X_test = X_test.to(device)
 
-    # Training model
-    if device.type == "cuda":
-        torch.cuda.synchronize()
-    start_time = time.perf_counter()
+    if load_pretrained == True:
+        #load presaved weights from our best run:
+        model.load_state_dict(torch.load(weights_path))
+    else:
+        # Training model
+        if device.type == "cuda":
+            torch.cuda.synchronize()
+        start_time = time.perf_counter()
 
-    model.fit(X_train, y_train)
+        model.fit(X_train, y_train)
 
-    if device.type == "cuda":
-        torch.cuda.synchronize()
-    training_time = time.perf_counter() - start_time
+        if device.type == "cuda":
+            torch.cuda.synchronize()
+        training_time = time.perf_counter() - start_time
+
+        torch.save(model.state_dict(), weights_path)
 
     # Inference
     train_pred = model(X_train)

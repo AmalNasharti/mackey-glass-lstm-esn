@@ -163,6 +163,8 @@ def train_model(
     device,
     num_epochs,
     patience,
+    weights_path,
+    load_pretrained=False,
     verbose=True
 ):
     """
@@ -170,7 +172,7 @@ def train_model(
     on the validation set after each epoch.
 
     Early stopping is applied when the validation loss does not improve
-    for a specified number of consecutive epochs.
+    for a specified number of consecutive epochs. Best weight are saved.
 
     Returns
     -------
@@ -179,72 +181,76 @@ def train_model(
     val_losses : list
         Average validation loss for each epoch.
     """
-    best_val_loss = float("inf")
-    epochs_no_improve = 0
-    best_state = None
+    if load_pretrained == True:
+        # load presaved weights from best run:
+        model.load_state_dict(torch.load(weights_path)) 
+    else:   
+        best_val_loss = float("inf")
+        epochs_no_improve = 0
+        best_state = None
 
-    train_losses = []
-    val_losses = []
+        train_losses = []
+        val_losses = []
 
-    if verbose:
-        print("Starting Training...")
+        if verbose:
+            print("Starting Training...")
 
-    for epoch in range(num_epochs):
-        # Training
-        model.train()
-        train_loss = 0.0
+        for epoch in range(num_epochs):
+            # Training
+            model.train()
+            train_loss = 0.0
 
-        for X, y in train_loader:
-            X = X.to(device)
-            y = y.to(device)
-            optimizer.zero_grad()
-            pred = model(X)
-            loss = criterion(pred, y)
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-
-        train_loss /= len(train_loader)
-        train_losses.append(train_loss)
-
-        # Validation
-        model.eval()
-        val_loss = 0.0
-
-        with torch.no_grad():
-
-            for X, y in val_loader:
+            for X, y in train_loader:
                 X = X.to(device)
                 y = y.to(device)
+                optimizer.zero_grad()
                 pred = model(X)
                 loss = criterion(pred, y)
-                val_loss += loss.item()
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item()
 
-        val_loss /= len(val_loader)
-        val_losses.append(val_loss)
+            train_loss /= len(train_loader)
+            train_losses.append(train_loss)
+
+            # Validation
+            model.eval()
+            val_loss = 0.0
+
+            with torch.no_grad():
+
+                for X, y in val_loader:
+                    X = X.to(device)
+                    y = y.to(device)
+                    pred = model(X)
+                    loss = criterion(pred, y)
+                    val_loss += loss.item()
+
+            val_loss /= len(val_loader)
+            val_losses.append(val_loss)
+
+            if verbose: 
+                print(
+                    f"Epoch {epoch + 1:3d} | "
+                    f"Train: {train_loss:.6f} | "
+                    f"Val: {val_loss:.6f}"
+                )
+                
+            # Early stopping
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                torch.save(model.state_dict(), weights_path)
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+                if epochs_no_improve >= patience:
+                    if verbose:
+                        print(f"Early stopping at epoch {epoch + 1}")
+                    model.load_state_dict(torch.load(weights_path))
+                    break
 
         if verbose: 
-            print(
-                f"Epoch {epoch + 1:3d} | "
-                f"Train: {train_loss:.6f} | "
-                f"Val: {val_loss:.6f}"
-            )
-            
-        # Early stopping
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_state = copy.deepcopy(model.state_dict())
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
-            if epochs_no_improve >= patience:
-                if verbose:
-                    print(f"Early stopping at epoch {epoch + 1}")
-                model.load_state_dict(best_state)
-                break
-
-    if verbose: 
-        print("Training complete.")
+            print("Training complete.")
 
     return train_losses, val_losses
 
@@ -285,7 +291,7 @@ def get_predictions(model, loader, device):
 
     return np.vstack(predictions), np.vstack(actuals)
 
-def run_lstm(train_norm, val_norm, test_norm, config, device):
+def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path):
     """
     Run the complete LSTM training and inference pipeline.
 
@@ -306,6 +312,8 @@ def run_lstm(train_norm, val_norm, test_norm, config, device):
         hyperparameters.
     device : torch.device
         Device used for model training and inference.
+    weights_path: str or Path
+        Path to save weights
 
     Returns
     -------
@@ -345,7 +353,7 @@ def run_lstm(train_norm, val_norm, test_norm, config, device):
         torch.cuda.synchronize()
     start_time = time.perf_counter()
 
-    train_losses, val_losses = train_model(model, train_loader, val_loader, criterion, optimizer, device, config["num_epochs"], config["patience"]) 
+    train_losses, val_losses = train_model(model, train_loader, val_loader, criterion, optimizer, device, config["num_epochs"], config["patience"], weights_path) 
 
     if device.type == "cuda":
         torch.cuda.synchronize()
