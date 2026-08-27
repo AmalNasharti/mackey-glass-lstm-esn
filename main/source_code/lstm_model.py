@@ -290,7 +290,7 @@ def get_predictions(model, loader, device):
 
     return np.vstack(predictions), np.vstack(actuals)
 
-def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path, load_pretrained=False):
+def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path=None, load_pretrained=False, save_weights = True):
     """
     Run the complete LSTM training and inference pipeline.
 
@@ -315,7 +315,9 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path, load
         Path to save weights.
     load_pretrained: Bool (default: False)
         If true weights from a previous run are loaded and no 
-        training is performed.    
+        training is performed. 
+    save_weights: Bool (default: True)
+        If true weighs are saved   
 
     Returns
     -------
@@ -362,7 +364,7 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path, load
             torch.cuda.synchronize()
         start_time = time.perf_counter()
 
-        train_losses, val_losses = train_model(model, train_loader, val_loader, criterion, optimizer, device, config["num_epochs"], config["patience"], weights_path) 
+        train_losses, val_losses = train_model(model, train_loader, val_loader, criterion, optimizer, device, config["num_epochs"], config["patience"], weights_path, save_weights) 
 
         if device.type == "cuda":
             torch.cuda.synchronize()

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import torch
 from pathlib import Path
 import shutil
+import json
 
 from main.source_code import utils
 from main.source_code import lstm_model
@@ -102,6 +103,63 @@ def save_dataset(file):
     )
 
     return f"Dataset saved as `{source_path.name}`."
+
+def load_lstm_config(config_file):
+    """
+    Load an LSTM configuration from a JSON file.
+
+    Parameters
+    ----------
+    config_file : str
+        Path to the uploaded JSON configuration file.
+
+    Returns
+    -------
+    hidden_size : int
+        Number of LSTM hidden units.
+    sequence_length : int
+        Length of the input sequences.
+    batch_size : int
+        Training batch size.
+    learning_rate : float
+        Optimizer learning rate.
+    """
+
+    if config_file is None:
+        raise gr.Error(
+            "Please upload a JSON configuration file."
+        )
+
+    # Load configuration
+    with open(config_file, "r") as file:
+        config = json.load(file)
+
+    # Check required parameters
+    required_parameters = [
+        "hidden_size",
+        "sequence_length",
+        "batch_size",
+        "learning_rate"
+    ]
+
+    missing_parameters = [
+        parameter
+        for parameter in required_parameters
+        if parameter not in config
+    ]
+
+    if missing_parameters:
+        raise gr.Error(
+            "Invalid LSTM configuration. Missing parameters: "
+            + ", ".join(missing_parameters)
+        )
+
+    return (
+        int(config["hidden_size"]),
+        int(config["sequence_length"]),
+        int(config["batch_size"]),
+        float(config["learning_rate"])
+    )
 
 def split_and_normalize(input_series, train_end, val_end):
     """
@@ -345,7 +403,10 @@ def run_lstm_from_gui(
         val_norm,
         test_norm,
         lstm_config,
-        device
+        device,
+        weights_path=None,
+        load_pretrained=False,
+        save_weights = False
     )
 
     # Return predictions to the original scale

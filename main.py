@@ -35,8 +35,8 @@ esn_config = config["esn"]
 
 input_series = pd.read_csv(DATA_PATH)['value']
 
-LOAD_PRETRAINED_LSTM = True
-LOAD_PRETRAINED_ENS = True
+LOAD_PRETRAINED_LSTM = False
+LOAD_PRETRAINED_ENS = False
 
 # ======================================
 # SET SEED FOR REPRODUCIBILITY

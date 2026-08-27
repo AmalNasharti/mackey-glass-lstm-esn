@@ -25,8 +25,8 @@ SEEDS_LSTM = range(1)
 RESTART_LSTM = True
 
 MODEL_ESN = "esn"
-N_CONFIG_ESN = 20
-SEEDS_ESN = range(10)
+N_CONFIG_ESN = 10
+SEEDS_ESN = range(5)
 RESTART_ESN = True
 
 # Data preprocessing
@@ -58,10 +58,10 @@ best_config_lstm, best_val_loss_lstm = tuning.random_search(MODEL_LSTM, train_no
 # ESN FINE TUNING
 #=============================
 
-# print("\n Fine tuning ESN...")
+print("\n Fine tuning ESN...")
 
-# # Generate parameter configurations to test
-# configs_esn = tuning.generate_configs("esn", SEARCH_SPACE_PATH_ESN, N_CONFIG_ESN, CONFIGS_PATH_ESN)
+# Generate parameter configurations to test
+configs_esn = tuning.generate_configs("esn", SEARCH_SPACE_PATH_ESN, N_CONFIG_ESN, CONFIGS_PATH_ESN)
 
-# # Calculate best parameter configuration and best loss
-# best_config_esn, best_val_loss_esn = tuning.random_search(MODEL_ESN, train_norm, val_norm, device, configs_esn, SEEDS_ESN, RESULTS_PATH_ESN, BEST_RESULTS_PATH_ESN, RESTART_ESN)
+# Calculate best parameter configuration and best loss
+best_config_esn, best_val_loss_esn = tuning.random_search(MODEL_ESN, train_norm, val_norm, device, configs_esn, SEEDS_ESN, RESULTS_PATH_ESN, BEST_RESULTS_PATH_ESN, RESTART_ESN)

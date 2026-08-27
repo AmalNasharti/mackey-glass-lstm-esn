@@ -180,40 +180,99 @@ with gr.Blocks(title="Time Series Prediction") as demo:
         # ====================================================
         # LSTM
         # ====================================================
-
         with gr.Tab("LSTM"):
+
             gr.Markdown("## LSTM")
+
+            # -------------------------
+            # Optional loading
+            # -------------------------
+            gr.Markdown("### Load Optional Files")
+            # Option to load hyperparameters from JSON
+            load_lstm_config_checkbox = gr.Checkbox(
+                value=False,
+                label="Load configuration from JSON"
+            )
+
+            load_lstm_config_file = gr.File(
+                label="Load Configuration (.json)",
+                file_types=[".json"],
+                type="filepath",
+                visible=False
+            )
+
+            load_lstm_config_checkbox.change(
+                fn=lambda checked: gr.update(
+                    visible=checked
+                ),
+                inputs=load_lstm_config_checkbox,
+                outputs=load_lstm_config_file
+            )
+
+            # Option to load pretrained weights
+            load_lstm_weights_checkbox = gr.Checkbox(
+                value=False,
+                label="Load pretrained weights"
+            )
+
+            load_lstm_weights_file = gr.File(
+                label="Load Weights (.pt)",
+                file_types=[".pt"],
+                type="filepath",
+                visible=False
+            )
+
+            load_lstm_weights_checkbox.change(
+                fn=lambda checked: gr.update(
+                    visible=checked
+                ),
+                inputs=load_lstm_weights_checkbox,
+                outputs=load_lstm_weights_file
+            )
+
+            # -------------------------
+            # Hyperparameters
+            # -------------------------
             gr.Markdown("### Hyperparameters")
             gr.Markdown(
                 "Fixed training parameters: "
                 "`num_epochs = 100`, `patience = 5`"
             )
+
             # Inputs
             lstm_hidden_size = gr.Number(
-                value=128,
                 label="Hidden size",
                 info="Suggested for MG17: 8–128",
                 precision=0
             )
 
             lstm_sequence_length = gr.Number(
-                value=100,
                 label="Sequence length",
                 info="Suggested for MG17: 10–100",
                 precision=0
             )
 
             lstm_batch_size = gr.Number(
-                value=16,
                 label="Batch size",
                 info="Suggested for MG17: 16–128",
                 precision=0
             )
 
             lstm_learning_rate = gr.Number(
-                value=0.001,
                 label="Learning rate",
                 info="Suggested for MG17: 1e-4 – 1e-2"
+            )
+
+            # Update hyperparameters when a configuration is uploaded
+            load_lstm_config_file.change(
+                fn=utils.load_lstm_config,
+                inputs=load_lstm_config_file,
+                outputs=[
+                    lstm_hidden_size,
+                    lstm_sequence_length,
+                    lstm_batch_size,
+                    lstm_learning_rate
+                ]
             )
 
             # Button for running LSTM 
@@ -277,6 +336,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     lstm_sequence_length,
                     lstm_batch_size,
                     lstm_learning_rate,
+                    load_lstm_weights_file
                 ],
                 outputs=[
                     train_mse_output,
