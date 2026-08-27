@@ -20,12 +20,14 @@ BEST_RESULTS_PATH_ESN = BASE_DIR / "fine_tuning" / "output" / "best_result_esn.c
 
 # Parameters
 MODEL_LSTM =  "lstm"
-N_CONFIG_LSTM = 30
-SEEDS_LSTM = range(5)
+N_CONFIG_LSTM = 2
+SEEDS_LSTM = range(1)
+RESTART_LSTM = True
 
 MODEL_ESN = "esn"
-N_CONFIG_ESN = 150
+N_CONFIG_ESN = 20
 SEEDS_ESN = range(10)
+RESTART_ESN = True
 
 # Data preprocessing
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,19 +49,19 @@ train_norm, val_norm, test_norm, train_mean, train_std = utils.zscore_normalize(
 print("Fine tuning LSTM...")
 
 # Generate parameter configurations to test
-configs_lstm = tuning.generate_configs(MODEL_LSTM, SEARCH_SPACE_PATH_LSTM, N_CONFIG_LSTM, CONFIGS_PATH_LSTM, search_seed=42)
+configs_lstm = tuning.generate_configs(MODEL_LSTM, SEARCH_SPACE_PATH_LSTM, N_CONFIG_LSTM, CONFIGS_PATH_LSTM)
 
 # Calculate best parameter configuration and best loss
-best_config_lstm, best_val_loss_lstm = tuning.random_search(MODEL_LSTM, train_norm, val_norm, device, configs_lstm, SEEDS_LSTM, RESULTS_PATH_LSTM, BEST_RESULTS_PATH_LSTM, restart=False)
+best_config_lstm, best_val_loss_lstm = tuning.random_search(MODEL_LSTM, train_norm, val_norm, device, configs_lstm, SEEDS_LSTM, RESULTS_PATH_LSTM, BEST_RESULTS_PATH_LSTM, RESTART_LSTM)
 
 #=============================
 # ESN FINE TUNING
 #=============================
 
-print("\n Fine tuning ESN...")
+# print("\n Fine tuning ESN...")
 
-# Generate parameter configurations to test
-configs_esn = tuning.generate_configs("esn", SEARCH_SPACE_PATH_ESN, N_CONFIG_ESN, CONFIGS_PATH_ESN, search_seed=42)
+# # Generate parameter configurations to test
+# configs_esn = tuning.generate_configs("esn", SEARCH_SPACE_PATH_ESN, N_CONFIG_ESN, CONFIGS_PATH_ESN)
 
-# Calculate best parameter configuration and best loss
-best_config_esn, best_val_loss_esn = tuning.random_search(MODEL_ESN, train_norm, val_norm, device, configs_esn, SEEDS_ESN, RESULTS_PATH_ESN, BEST_RESULTS_PATH_ESN, restart=False)
+# # Calculate best parameter configuration and best loss
+# best_config_esn, best_val_loss_esn = tuning.random_search(MODEL_ESN, train_norm, val_norm, device, configs_esn, SEEDS_ESN, RESULTS_PATH_ESN, BEST_RESULTS_PATH_ESN, RESTART_ESN)

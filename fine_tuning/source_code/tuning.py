@@ -279,7 +279,8 @@ def val_loss_lstm(train_norm, val_norm, config, device):
         device,
         int(config["num_epochs"]),
         int(config["patience"]),
-        verbose=False
+        save_weights=False,
+        verbose=False,
     )
 
     return min(val_losses)

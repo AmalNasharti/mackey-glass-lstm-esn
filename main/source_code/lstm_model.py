@@ -163,8 +163,10 @@ def train_model(
     device,
     num_epochs,
     patience,
-    weights_path,
+    weights_path=None,
+    save_weights = True,
     verbose=True
+    
 ):
     """
     Train the model using mini-batch gradient descent and evaluate it
@@ -233,7 +235,8 @@ def train_model(
         # Early stopping
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), weights_path)
+            if save_weights:
+                torch.save(model.state_dict(), weights_path)
             epochs_no_improve = 0
         else:
             epochs_no_improve += 1
@@ -241,8 +244,9 @@ def train_model(
                 if verbose:
                     print(f"Early stopping at epoch {epoch + 1}")
                 break
-    
-    model.load_state_dict(torch.load(weights_path))
+
+    if save_weights:
+        model.load_state_dict(torch.load(weights_path))
 
     if verbose: 
         print("Training complete.")
@@ -286,7 +290,7 @@ def get_predictions(model, loader, device):
 
     return np.vstack(predictions), np.vstack(actuals)
 
-def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path, load_pretrained):
+def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path, load_pretrained=False):
     """
     Run the complete LSTM training and inference pipeline.
 
@@ -311,8 +315,7 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path, load
         Path to save weights.
     load_pretrained: Bool (default: False)
         If true weights from a previous run are loaded and no 
-        training is performed.
-        
+        training is performed.    
 
     Returns
     -------
