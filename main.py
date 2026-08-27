@@ -36,6 +36,7 @@ esn_config = config["esn"]
 input_series = pd.read_csv(DATA_PATH)['value']
 
 LOAD_PRETRAINED_LSTM = True
+LOAD_PRETRAINED_ENS = True
 
 # ======================================
 # SET SEED FOR REPRODUCIBILITY
@@ -78,7 +79,7 @@ test_mse_lstm  = utils.mse(y_test_actual_lstm, y_test_pred_lstm)
 # ESN
 # ======================================
 # Run ESN
-esn_results = esn_model.run_esn(train_norm, val_norm, test_norm, esn_config, device, WEIGHTS_PATH_ENS)
+esn_results = esn_model.run_esn(train_norm, val_norm, test_norm, esn_config, device, WEIGHTS_PATH_ENS, LOAD_PRETRAINED_ENS)
 
 # Return predictions and targets to the original scale
 y_train_pred_esn = utils.inverse_zscore(esn_results['train_pred'], train_mean, train_std)

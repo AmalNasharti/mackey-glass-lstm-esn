@@ -142,8 +142,6 @@ class EchoStateNetwork(nn.Module):
             )
         )
 
-        self.fitted = False
-
     def run_reservoir(self, input_data):
         """
         Run the input sequence through the reservoir.
@@ -207,8 +205,6 @@ class EchoStateNetwork(nn.Module):
             X.T @ Y
         )
 
-        self.fitted = True
-
     def forward(self, input_data):
         """
         Generate predictions for an input sequence.
@@ -223,10 +219,6 @@ class EchoStateNetwork(nn.Module):
         predictions : np.ndarray
             Predicted values with shape (T, 1).
         """
-
-        if not self.fitted:
-            raise RuntimeError("The ESN must be fitted before prediction.")
-
         reservoir_states = self.run_reservoir(input_data)
 
         predictions = reservoir_states @ self.W_out
@@ -287,9 +279,10 @@ def run_esn(train_norm, val_norm, test_norm, config, device, weights_path, load_
     X_val = X_val.to(device)
     X_test = X_test.to(device)
 
-    if load_pretrained == True:
+    if load_pretrained:
         #load presaved weights from our best run:
         model.load_state_dict(torch.load(weights_path))
+        training_time = None
     else:
         # Training model
         if device.type == "cuda":
