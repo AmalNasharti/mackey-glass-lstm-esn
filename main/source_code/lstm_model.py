@@ -164,7 +164,6 @@ def train_model(
     num_epochs,
     patience,
     weights_path,
-    load_pretrained=False,
     verbose=True
 ):
     """
@@ -180,77 +179,73 @@ def train_model(
         Average training loss for each epoch.
     val_losses : list
         Average validation loss for each epoch.
-    """
-    if load_pretrained == True:
-        # load presaved weights from best run:
-        model.load_state_dict(torch.load(weights_path)) 
-    else:   
-        best_val_loss = float("inf")
-        epochs_no_improve = 0
-        best_state = None
+    """ 
+    best_val_loss = float("inf")
+    epochs_no_improve = 0
 
-        train_losses = []
-        val_losses = []
+    train_losses = []
+    val_losses = []
 
-        if verbose:
-            print("Starting Training...")
+    if verbose:
+        print("Starting Training...")
 
-        for epoch in range(num_epochs):
-            # Training
-            model.train()
-            train_loss = 0.0
+    for epoch in range(num_epochs):
+        # Training
+        model.train()
+        train_loss = 0.0
 
-            for X, y in train_loader:
+        for X, y in train_loader:
+            X = X.to(device)
+            y = y.to(device)
+            optimizer.zero_grad()
+            pred = model(X)
+            loss = criterion(pred, y)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item()
+
+        train_loss /= len(train_loader)
+        train_losses.append(train_loss)
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+
+        with torch.no_grad():
+
+            for X, y in val_loader:
                 X = X.to(device)
                 y = y.to(device)
-                optimizer.zero_grad()
                 pred = model(X)
                 loss = criterion(pred, y)
-                loss.backward()
-                optimizer.step()
-                train_loss += loss.item()
+                val_loss += loss.item()
 
-            train_loss /= len(train_loader)
-            train_losses.append(train_loss)
-
-            # Validation
-            model.eval()
-            val_loss = 0.0
-
-            with torch.no_grad():
-
-                for X, y in val_loader:
-                    X = X.to(device)
-                    y = y.to(device)
-                    pred = model(X)
-                    loss = criterion(pred, y)
-                    val_loss += loss.item()
-
-            val_loss /= len(val_loader)
-            val_losses.append(val_loss)
-
-            if verbose: 
-                print(
-                    f"Epoch {epoch + 1:3d} | "
-                    f"Train: {train_loss:.6f} | "
-                    f"Val: {val_loss:.6f}"
-                )
-                
-            # Early stopping
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                torch.save(model.state_dict(), weights_path)
-                epochs_no_improve = 0
-            else:
-                epochs_no_improve += 1
-                if epochs_no_improve >= patience:
-                    if verbose:
-                        print(f"Early stopping at epoch {epoch + 1}")
-                    model.load_state_dict(torch.load(weights_path))
-                    break
+        val_loss /= len(val_loader)
+        val_losses.append(val_loss)
 
         if verbose: 
-            print("Training complete.")
+            print(
+                f"Epoch {epoch + 1:3d} | "
+                f"Train: {train_loss:.6f} | "
+                f"Val: {val_loss:.6f}"
+            )
+            
+        # Early stopping
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), weights_path)
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            if epochs_no_improve >= patience:
+                if verbose:
+                    print(f"Early stopping at epoch {epoch + 1}")
+                break
+    
+    model.load_state_dict(torch.load(weights_path))
+
+    if verbose: 
+        print("Training complete.")
 
     return train_losses, val_losses
 
@@ -291,7 +286,7 @@ def get_predictions(model, loader, device):
 
     return np.vstack(predictions), np.vstack(actuals)
 
-def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path):
+def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path, load_pretrained):
     """
     Run the complete LSTM training and inference pipeline.
 
@@ -313,7 +308,11 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path):
     device : torch.device
         Device used for model training and inference.
     weights_path: str or Path
-        Path to save weights
+        Path to save weights.
+    load_pretrained: Bool (default: False)
+        If true weights from a previous run are loaded and no 
+        training is performed.
+        
 
     Returns
     -------
@@ -339,25 +338,32 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path):
         output_size=config["output_size"]
     ).to(device)
 
-    # Loss
-    criterion = nn.MSELoss()
+    if load_pretrained:
+        #load presaved weights from best run:
+        model.load_state_dict(torch.load(weights_path))
+        train_losses = None
+        val_losses = None
+        training_time = None
+    else:
+        # Loss
+        criterion = nn.MSELoss()
 
-    # Optimizer
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=config["learning_rate"]
-    )
+        # Optimizer
+        optimizer = optim.Adam(
+            model.parameters(),
+            lr=config["learning_rate"]
+        )
 
-    # Training model
-    if device.type == "cuda":
-        torch.cuda.synchronize()
-    start_time = time.perf_counter()
+        # Training model
+        if device.type == "cuda":
+            torch.cuda.synchronize()
+        start_time = time.perf_counter()
 
-    train_losses, val_losses = train_model(model, train_loader, val_loader, criterion, optimizer, device, config["num_epochs"], config["patience"], weights_path) 
+        train_losses, val_losses = train_model(model, train_loader, val_loader, criterion, optimizer, device, config["num_epochs"], config["patience"], weights_path) 
 
-    if device.type == "cuda":
-        torch.cuda.synchronize()
-    training_time = time.perf_counter() - start_time
+        if device.type == "cuda":
+            torch.cuda.synchronize()
+        training_time = time.perf_counter() - start_time
 
     # Inference
     y_train_pred,_ = get_predictions(model, train_loader_plot, device)
@@ -373,6 +379,7 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path):
         torch.cuda.synchronize()
     inference_time = time.perf_counter() - start_time
 
+
     return {
         "model": model,
         "train_pred": y_train_pred,
@@ -383,4 +390,5 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path):
         "training_time": training_time,
         "inference_time": inference_time
     }
+
         

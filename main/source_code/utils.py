@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 def split_data(series, train_end, val_end):
     """
@@ -207,3 +208,20 @@ def save_predictions(y_actual, y_pred, model_name, save_path, n_points=1000):
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
+def clear_output_directory(output_dir):
+    """
+    Remove all files from the specified output directory.
+
+    Parameters
+    ----------
+    output_dir : str or Path
+        Path to the output directory to clear.
+    """
+
+    output_dir = Path(output_dir)
+
+    # Remove all files in the output directory
+    for file in output_dir.iterdir():
+        if file.is_file():
+            file.unlink()

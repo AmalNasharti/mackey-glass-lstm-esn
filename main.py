@@ -20,8 +20,11 @@ OUTPUT_DIR = BASE_DIR / "main" / "output"
 
 CONFIG_PATH = BASE_DIR / "main" / "input" / "config.json"
 
-WEIGHTS_PATH_LSTM = OUTPUT_DIR / "best_params_lstm.pt"
-WEIGHTS_PATH_ENS = OUTPUT_DIR / "best_params_ens.pt"
+WEIGHTS_PATH_LSTM = BASE_DIR / "main" / "weights" / "best_params_lstm.pt"
+WEIGHTS_PATH_ENS = BASE_DIR / "main" / "weights" / "best_params_ens.pt"
+
+# Clear results from previous executions
+utils.clear_output_directory(OUTPUT_DIR)
 
 with open(CONFIG_PATH, "r") as file:
     config = json.load(file)
@@ -31,6 +34,8 @@ lstm_config = config["lstm"]
 esn_config = config["esn"]
 
 input_series = pd.read_csv(DATA_PATH)['value']
+
+LOAD_PRETRAINED_LSTM = True
 
 # ======================================
 # SET SEED FOR REPRODUCIBILITY
@@ -54,7 +59,7 @@ train_norm, val_norm, test_norm, train_mean, train_std = utils.zscore_normalize(
 # LSTM
 # ======================================
 # Run LSTM
-lstm_results = lstm_model.run_lstm(train_norm, val_norm, test_norm, lstm_config, device, WEIGHTS_PATH_LSTM)
+lstm_results = lstm_model.run_lstm(train_norm, val_norm, test_norm, lstm_config, device, WEIGHTS_PATH_LSTM, LOAD_PRETRAINED_LSTM)
 
 # Return predictions and targets to the original scale
 y_train_pred_lstm = utils.inverse_zscore(lstm_results['train_pred'], train_mean, train_std)
@@ -115,11 +120,12 @@ utils.save_original_time_series(
     save_path=OUTPUT_DIR / "input_series.png"
 )
 
-utils.save_losses(
-    lstm_results["train_losses"],
-    lstm_results["val_losses"],
-    save_path=OUTPUT_DIR / "lstm_losses.png"
-)
+if not LOAD_PRETRAINED_LSTM:
+    utils.save_losses(
+        lstm_results["train_losses"],
+        lstm_results["val_losses"],
+        save_path=OUTPUT_DIR / "lstm_losses.png"
+    )
 
 utils.save_predictions(
     y_test_actual_lstm,
