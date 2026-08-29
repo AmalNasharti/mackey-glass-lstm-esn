@@ -21,10 +21,10 @@ OUTPUT_DIR = BASE_DIR / "main" / "output"
 CONFIG_PATH = BASE_DIR / "main" / "input" / "config.json"
 
 WEIGHTS_PATH_LSTM = BASE_DIR / "main" / "weights" / "best_params_lstm.pt"
-WEIGHTS_PATH_ENS = BASE_DIR / "main" / "weights" / "best_params_ens.pt"
+WEIGHTS_PATH_ESN = BASE_DIR / "main" / "weights" / "best_params_ens.pt"
 
 # Clear results from previous executions
-utils.clear_output_directory(OUTPUT_DIR)
+utils.clear_directory(OUTPUT_DIR)
 
 with open(CONFIG_PATH, "r") as file:
     config = json.load(file)
@@ -36,19 +36,14 @@ esn_config = config["esn"]
 input_series = pd.read_csv(DATA_PATH)['value']
 
 LOAD_PRETRAINED_LSTM = False
-LOAD_PRETRAINED_ENS = False
+LOAD_PRETRAINED_ESN = False
 
 # ======================================
 # SET SEED FOR REPRODUCIBILITY
 # ======================================
 SEED = config["seed"]
 
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(SEED)
+utils.set_seed(SEED)
 
 # ======================================
 # DATA PREPROCESSING
@@ -79,7 +74,7 @@ test_mse_lstm  = utils.mse(y_test_actual_lstm, y_test_pred_lstm)
 # ESN
 # ======================================
 # Run ESN
-esn_results = esn_model.run_esn(train_norm, val_norm, test_norm, esn_config, device, WEIGHTS_PATH_ENS, LOAD_PRETRAINED_ENS)
+esn_results = esn_model.run_esn(train_norm, val_norm, test_norm, esn_config, device, WEIGHTS_PATH_ESN, LOAD_PRETRAINED_ESN)
 
 # Return predictions and targets to the original scale
 y_train_pred_esn = utils.inverse_zscore(esn_results['train_pred'], train_mean, train_std)

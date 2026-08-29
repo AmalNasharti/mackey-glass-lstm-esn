@@ -1,6 +1,9 @@
 import gradio as gr
 from gui import utils
 
+# Reset config, input, output and weights directories
+utils.reset_gui()
+
 # ============================================================
 # GRAPHICAL USER INTERFACE
 # ============================================================
@@ -67,21 +70,6 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     input_series_state,
                     dataset_info
                 ]
-            )
-
-            # Save uploaded dataset inside gui/input
-            save_dataset_button = gr.Button(
-                "Save Dataset",
-                variant="primary"
-            )
-
-            save_dataset_message = gr.Markdown()
-
-            # Save dataset when the button is pressed
-            save_dataset_button.click(
-                fn=utils.save_dataset,
-                inputs=csv_file,
-                outputs=save_dataset_message
             )
 
             # -------------------------
@@ -180,116 +168,155 @@ with gr.Blocks(title="Time Series Prediction") as demo:
         # ====================================================
         # LSTM
         # ====================================================
+
         with gr.Tab("LSTM"):
 
             gr.Markdown("## LSTM")
 
             # -------------------------
-            # Optional loading
+            # Select LSTM mode
             # -------------------------
-            gr.Markdown("### Load Optional Files")
-            # Option to load hyperparameters from JSON
-            load_lstm_config_checkbox = gr.Checkbox(
-                value=False,
-                label="Load configuration from JSON"
+
+            lstm_mode = gr.Radio(
+                choices=[
+                    "Train New Model",
+                    "Use Pretrained Model"
+                ],
+                value="Train New Model",
+                label="LSTM Mode"
             )
 
-            load_lstm_config_file = gr.File(
-                label="Load Configuration (.json)",
-                file_types=[".json"],
-                type="filepath",
-                visible=False
-            )
+            # ====================================================
+            # TRAIN NEW MODEL
+            # ====================================================
 
-            load_lstm_config_checkbox.change(
-                fn=lambda checked: gr.update(
-                    visible=checked
-                ),
-                inputs=load_lstm_config_checkbox,
-                outputs=load_lstm_config_file
-            )
+            with gr.Group(visible=True) as lstm_train_section:
 
-            # Option to load pretrained weights
-            load_lstm_weights_checkbox = gr.Checkbox(
-                value=False,
-                label="Load pretrained weights"
-            )
+                gr.Markdown("### Train New Model")
 
-            load_lstm_weights_file = gr.File(
-                label="Load Weights (.pt)",
-                file_types=[".pt"],
-                type="filepath",
-                visible=False
-            )
+                gr.Markdown(
+                    "Define the hyperparameters manually or optionally "
+                    "load them from a JSON configuration file."
+                )
 
-            load_lstm_weights_checkbox.change(
-                fn=lambda checked: gr.update(
-                    visible=checked
-                ),
-                inputs=load_lstm_weights_checkbox,
-                outputs=load_lstm_weights_file
-            )
+                # Optional JSON used only to pre-fill the hyperparameter fields
+                lstm_train_config_file = gr.File(
+                    label="Optional Configuration (.json)",
+                    file_types=[".json"],
+                    type="filepath"
+                )
 
-            # -------------------------
-            # Hyperparameters
-            # -------------------------
-            gr.Markdown("### Hyperparameters")
-            gr.Markdown(
-                "Fixed training parameters: "
-                "`num_epochs = 100`, `patience = 5`"
-            )
+                gr.Markdown("### Hyperparameters")
 
-            # Inputs
-            lstm_hidden_size = gr.Number(
-                label="Hidden size",
-                info="Suggested for MG17: 8–128",
-                precision=0
-            )
+                gr.Markdown(
+                    "Fixed training parameters: "
+                    "`num_epochs = 100`, `patience = 5`"
+                )
 
-            lstm_sequence_length = gr.Number(
-                label="Sequence length",
-                info="Suggested for MG17: 10–100",
-                precision=0
-            )
+                lstm_hidden_size = gr.Number(
+                    value=128,
+                    label="Hidden size",
+                    info="Suggested for MG17: 8–128",
+                    precision=0
+                )
 
-            lstm_batch_size = gr.Number(
-                label="Batch size",
-                info="Suggested for MG17: 16–128",
-                precision=0
-            )
+                lstm_sequence_length = gr.Number(
+                    value=100,
+                    label="Sequence length",
+                    info="Suggested for MG17: 10–100",
+                    precision=0
+                )
 
-            lstm_learning_rate = gr.Number(
-                label="Learning rate",
-                info="Suggested for MG17: 1e-4 – 1e-2"
-            )
+                lstm_batch_size = gr.Number(
+                    value=16,
+                    label="Batch size",
+                    info="Suggested for MG17: 16–128",
+                    precision=0
+                )
 
-            # Update hyperparameters when a configuration is uploaded
-            load_lstm_config_file.change(
-                fn=utils.load_lstm_config,
-                inputs=load_lstm_config_file,
+                lstm_learning_rate = gr.Number(
+                    value=0.001,
+                    label="Learning rate",
+                    info="Suggested for MG17: 1e-4–1e-2"
+                )
+
+                # If a JSON is uploaded, use it to fill the fields
+                lstm_train_config_file.change(
+                    fn=utils.load_lstm_config,
+                    inputs=lstm_train_config_file,
+                    outputs=[
+                        lstm_hidden_size,
+                        lstm_sequence_length,
+                        lstm_batch_size,
+                        lstm_learning_rate
+                    ]
+                )
+
+            # ====================================================
+            # USE PRETRAINED MODEL
+            # ====================================================
+
+            with gr.Group(visible=False) as lstm_pretrained_section:
+
+                gr.Markdown("### Use Pretrained Model")
+
+                gr.Markdown(
+                    "Load the configuration and weights of a previously trained LSTM."
+                )
+
+                lstm_pretrained_config_file = gr.File(
+                    label="Configuration (.json)",
+                    file_types=[".json"],
+                    type="filepath"
+                )
+
+                lstm_pretrained_weights_file = gr.File(
+                    label="Weights (.pt)",
+                    file_types=[".pt"],
+                    type="filepath"
+                )
+
+            # ====================================================
+            # SWITCH BETWEEN MODES
+            # ====================================================
+
+            def update_lstm_mode(mode):
+                train_mode = mode == "Train New Model"
+
+                return (
+                    gr.update(visible=train_mode),
+                    gr.update(visible=not train_mode)
+                )
+
+            lstm_mode.change(
+                fn=update_lstm_mode,
+                inputs=lstm_mode,
                 outputs=[
-                    lstm_hidden_size,
-                    lstm_sequence_length,
-                    lstm_batch_size,
-                    lstm_learning_rate
+                    lstm_train_section,
+                    lstm_pretrained_section
                 ]
             )
 
-            # Button for running LSTM 
+            # ====================================================
+            # RUN LSTM
+            # ====================================================
+
             run_lstm_button = gr.Button(
                 "Run LSTM",
                 variant="primary"
             )
+
             gr.Markdown(
                 """
                 **Note:** LSTM training may take a few minutes when running on CPU.
                 """
             )
 
-            # Outputs
-            gr.Markdown(
-                "### Results "
-            )
+            # ====================================================
+            # RESULTS
+            # ====================================================
+
+            gr.Markdown("### Results")
 
             train_mse_output = gr.Number(
                 label="Train MSE",
@@ -320,6 +347,10 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 label="Actual vs Predicted — Test Set"
             )
 
+            # ====================================================
+            # CONNECT BUTTON TO BACKEND FUNCTION
+            # ====================================================
+
             run_lstm_button.click(
                 fn=utils.run_lstm_from_gui,
                 inputs=[
@@ -332,11 +363,16 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     test_norm_state,
                     train_mean_state,
                     train_std_state,
+
+                    lstm_mode,
+
                     lstm_hidden_size,
                     lstm_sequence_length,
                     lstm_batch_size,
                     lstm_learning_rate,
-                    load_lstm_weights_file
+
+                    lstm_pretrained_config_file,
+                    lstm_pretrained_weights_file
                 ],
                 outputs=[
                     train_mse_output,
@@ -348,7 +384,50 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 ]
             )
 
+            # ====================================================
+            # DOWNLOAD LSTM FILES
+            # ====================================================
+
+            gr.Markdown("### Download Model Files")
+
+            with gr.Row():
+
+                download_lstm_config_button = gr.Button(
+                    "Download Configuration",
+                    variant="primary"
+                )
+
+                download_lstm_weights_button = gr.Button(
+                    "Download Weights",
+                    variant="primary"
+                )
+
+            # Files returned to the user
+            lstm_config_download = gr.File(
+                label="LSTM Configuration"
+            )
+
+            lstm_weights_download = gr.File(
+                label="LSTM Weights"
+            )
+
+            # Return the current LSTM configuration file
+            download_lstm_config_button.click(
+                fn=utils.get_lstm_config_file,
+                inputs=[],
+                outputs=lstm_config_download
+            )
+
+            # Return the current LSTM weights file
+            download_lstm_weights_button.click(
+                fn=utils.get_lstm_weights_file,
+                inputs=[],
+                outputs=lstm_weights_download
+            )
+
+            # ====================================================
             # Hyperparameter Tuning
+            # ====================================================
             with gr.Accordion(
                 "Automatic Hyperparameter Tuning",
                 open=False
@@ -357,26 +436,13 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 gr.Markdown(
                     """
                     Random search evaluates multiple LSTM hyperparameter configurations
-                    and selects the one with the lowest mean validation MSE.
+                    and returns the best configuration found.
 
-                    **Warning:** LSTM hyperparameter tuning may take several hours when
-                    running on CPU.
+                    **Note:** Execution time depends on the number of trials and runs per configuration
+                    and may take several hours when running on CPU. The default settings provide a
+                    faster search and typically take around 5 minutes on CPU.
 
-                    For a quick test, it is recommended to use:
-                    - `trials = 5`
-                    - `seeds = 1`
-
-                    A more extensive search performed with `trials = 30` and `seeds = 5`
-                    obtained the following best configuration:
-
-                    - Hidden size: `128`
-                    - Sequence length: `100`
-                    - Batch size: `16`
-                    - Learning rate: `0.0013258369731779726`
-                    - Number of epochs: `200`
-                    - Patience: `15`
-                    - Mean validation MSE: `6.0661e-07`
-                    - Standard deviation: `2.0493e-07`
+                    **Best configuration found:** *TO DO: insert best configuration.*
                     """
                 )
 
@@ -390,8 +456,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
 
                     lstm_n_seeds = gr.Number(
                         value=1,
-                        label="Number of seeds",
-                        info="Number of training runs with different random seeds used to evaluate each hyperparameter configuration.",
+                        label="Runs per configuration",
                         precision=0
                     )
 
@@ -404,6 +469,15 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     label="Best LSTM Configuration"
                 )
 
+                download_best_lstm_config_button = gr.Button(
+                    "Download Best Configuration",
+                    variant="primary"
+                )
+
+                best_lstm_config_download = gr.File(
+                    label="Best LSTM Configuration File"
+                )
+
                 start_lstm_tuning_button.click(
                     fn=utils.run_lstm_tuning_gui,
                     inputs=[
@@ -413,11 +487,15 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                         lstm_n_trials,
                         lstm_n_seeds
                     ],
-                    outputs=[
-                        best_lstm_config_output
-                    ]
+                    outputs=best_lstm_config_output
                 )
-            
+
+                download_best_lstm_config_button.click(
+                    fn=utils.get_best_lstm_config_file,
+                    inputs=[],
+                    outputs=best_lstm_config_download
+                )
+                        
 
         # ====================================================
         # ESN

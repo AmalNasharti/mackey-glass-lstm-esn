@@ -13,30 +13,55 @@ from fine_tuning.source_code import tuning
 
 NUM_EPOCHS = 100
 PATIENCE = 5
+SEED = 42
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-GUI_OUTPUT_DIR = BASE_DIR / "gui" / "output"
 
+# Base directories
+GUI_FINE_TUNING_DIR = BASE_DIR / "gui" / "fine_tuning"
 GUI_INPUT_DIR = BASE_DIR / "gui" / "input"
+GUI_WEIGHTS_DIR = BASE_DIR / "gui" / "weights"
+GUI_CONFIG_DIR = BASE_DIR / "gui" / "config"
 
+# Training LSTM
+WEIGHTS_PATH_LSTM = GUI_WEIGHTS_DIR / "lstm_weights.pt"
+CONFIG_PATH_LSTM = GUI_CONFIG_DIR / "lstm_config.json"
+
+# Parameter tuning LSTM
 SEARCH_SPACE_PATH_LSTM = BASE_DIR / "fine_tuning"/ "input" / "search_spaces" / "lstm_search_space.json"
-CONFIGS_PATH_LSTM = GUI_OUTPUT_DIR / "configs_lstm.csv"
-RESULTS_PATH_LSTM = GUI_OUTPUT_DIR / "results_lstm.csv"
-BEST_RESULTS_PATH_LSTM = GUI_OUTPUT_DIR / "best_result_lstm.csv"
+CONFIGS_PATH_LSTM = GUI_FINE_TUNING_DIR / "configs_lstm.csv"
+RESULTS_PATH_LSTM = GUI_FINE_TUNING_DIR / "results_lstm.csv"
+BEST_RESULTS_PATH_LSTM = GUI_FINE_TUNING_DIR / "best_result_lstm.csv"
+BEST_CONFIG_PATH_LSTM = GUI_FINE_TUNING_DIR / "best_config_lstm.json"
 
+# Parameter tuning ESN
 SEARCH_SPACE_PATH_ESN = BASE_DIR / "fine_tuning" / "input" / "search_spaces" / "esn_search_space.json"
-CONFIGS_PATH_ESN = GUI_OUTPUT_DIR / "configs_esn.csv"
-RESULTS_PATH_ESN = GUI_OUTPUT_DIR / "results_esn.csv"
-BEST_RESULTS_PATH_ESN = GUI_OUTPUT_DIR / "best_result_esn.csv"
+CONFIGS_PATH_ESN = GUI_FINE_TUNING_DIR / "configs_esn.csv"
+RESULTS_PATH_ESN = GUI_FINE_TUNING_DIR / "results_esn.csv"
+BEST_RESULTS_PATH_ESN = GUI_FINE_TUNING_DIR / "best_result_esn.csv"
+
+def reset_gui():
+    """
+    Clear all GUI directories.
+    """
+
+    directories = [
+        GUI_INPUT_DIR,
+        GUI_CONFIG_DIR,
+        GUI_WEIGHTS_DIR
+    ]
+
+    for directory in directories:
+        utils.clear_directory(directory)
 
 def load_dataset(file):
     """
-    Load a CSV dataset and extract the input time series.
+    Load the uploaded CSV dataset and save a copy in the GUI input directory.
 
     Parameters
     ----------
     file : str
-        Path to the uploaded CSV file.
+        Path to the CSV file selected by the user.
 
     Returns
     -------
@@ -52,18 +77,30 @@ def load_dataset(file):
     # Load CSV file
     df = pd.read_csv(file)
 
-    # Check expected time-series column
+    # Check required column
     if "value" not in df.columns:
         raise gr.Error(
             "The CSV file must contain a column named 'value'."
         )
 
+    # Get uploaded file path
+    source_path = Path(file)
+
+    # Save a copy inside gui/input
+    destination_path = GUI_INPUT_DIR / source_path.name
+
+    shutil.copy2(
+        source_path,
+        destination_path
+    )
+
+    # Extract input time series
     input_series = df["value"]
 
-    # Dataset information displayed in the GUI
+    # Dataset information
     info = (
         f"Dataset loaded successfully.\n"
-        f"Num ber of samples: {len(df)}\n"
+        f"Number of samples: {len(df)}\n"
         f"Number of columns: {len(df.columns)}\n"
         f"Selected column: value"
     )
@@ -89,6 +126,9 @@ def save_dataset(file):
         raise gr.Error(
             "No dataset loaded. Please upload a CSV file first."
         )
+
+    # Clear files from the previous experiment
+    reset_gui()
 
     # Get original file name
     source_path = Path(file)
@@ -160,6 +200,85 @@ def load_lstm_config(config_file):
         int(config["batch_size"]),
         float(config["learning_rate"])
     )
+
+def save_uploaded_lstm_config(config_file):
+    """
+    Save an uploaded LSTM configuration inside gui/config.
+
+    Parameters
+    ----------
+    config_file : str
+        Path to the uploaded JSON file.
+
+    Returns
+    -------
+    saved_path : str
+        Path to the saved configuration file.
+    """
+
+    if config_file is None:
+        return None
+
+    shutil.copy2(
+        config_file,
+        CONFIG_PATH_LSTM
+    )
+
+    return str(CONFIG_PATH_LSTM)
+
+def save_uploaded_lstm_weights(weights_file):
+    """
+    Save uploaded LSTM weights inside gui/weights.
+
+    Parameters
+    ----------
+    weights_file : str
+        Path to the uploaded .pt file.
+
+    Returns
+    -------
+    saved_path : str
+        Path to the saved weights file.
+    """
+
+    if weights_file is None:
+        return None
+
+    shutil.copy2(
+        weights_file,
+        WEIGHTS_PATH_LSTM
+    )
+
+    return str(WEIGHTS_PATH_LSTM)
+
+def get_lstm_config_file():
+    if not CONFIG_PATH_LSTM.exists():
+        raise gr.Error(
+            "No LSTM configuration is available. Run the model first."
+        )
+
+    return str(CONFIG_PATH_LSTM)
+
+def get_lstm_weights_file():
+    if not WEIGHTS_PATH_LSTM.exists():
+        raise gr.Error(
+            "No LSTM weights are available. Run the model first."
+        )
+
+    return str(WEIGHTS_PATH_LSTM)
+
+def get_best_lstm_config_file():
+    """
+    Return the best LSTM configuration found by random search.
+    """
+
+    if not BEST_CONFIG_PATH_LSTM.exists():
+        raise gr.Error(
+            "No tuned LSTM configuration is available. "
+            "Run the hyperparameter tuning first."
+        )
+
+    return str(BEST_CONFIG_PATH_LSTM)
 
 def split_and_normalize(input_series, train_end, val_end):
     """
@@ -318,21 +437,24 @@ def run_lstm_from_gui(
     test_norm,
     train_mean,
     train_std,
+    lstm_mode,
     hidden_size,
     sequence_length,
     batch_size,
     learning_rate,
-    num_epochs = NUM_EPOCHS,
-    patience = PATIENCE
+    pretrained_config_file,
+    pretrained_weights_file,
+    num_epochs=NUM_EPOCHS,
+    patience=PATIENCE
 ):
     """
-    Run the LSTM using hyperparameters provided through the GUI
-    and return train, validation, and test MSE.
+    Run the LSTM from the GUI using either a newly trained model
+    or a pretrained model.
 
     Parameters
     ----------
-    input_series: pd.Series
-        Input data series.
+    input_series : pd.Series
+        Original input time series.
     train, val, test : pd.Series
         Original-scale training, validation, and test sets.
     train_norm, val_norm, test_norm : pd.Series
@@ -341,6 +463,8 @@ def run_lstm_from_gui(
         Mean of the training set used for normalization.
     train_std : float
         Standard deviation of the training set used for normalization.
+    lstm_mode : str
+        Selected LSTM mode: "Train New Model" or "Use Pretrained Model".
     hidden_size : int
         Number of LSTM hidden units.
     sequence_length : int
@@ -349,14 +473,14 @@ def run_lstm_from_gui(
         Number of samples per training batch.
     learning_rate : float
         Optimizer learning rate.
+    pretrained_config_file : str or None
+        Path to the uploaded pretrained configuration file.
+    pretrained_weights_file : str or None
+        Path to the uploaded pretrained weights file.
     num_epochs : int
         Maximum number of training epochs.
     patience : int
         Early-stopping patience.
-    training_time: float
-        Time for training (s).
-    inference_time: float
-        Time for inference (s).
 
     Returns
     -------
@@ -366,7 +490,14 @@ def run_lstm_from_gui(
         Validation mean squared error.
     test_mse : float
         Test mean squared error.
+    training_time : float or None
+        Training time in seconds. None when a pretrained model is used.
+    inference_time : float
+        Test-set inference time in seconds.
+    prediction_plot : matplotlib.figure.Figure
+        Plot comparing actual and predicted test-set values.
     """
+
     # Check that a dataset has been uploaded
     if input_series is None:
         raise gr.Error(
@@ -378,38 +509,106 @@ def run_lstm_from_gui(
     if train_norm is None or val_norm is None or test_norm is None:
         raise gr.Error(
             "The dataset has not been split yet. Please define and apply "
-            "the train/validation/test split in the Data tab before running the LSTM."
+            "the train/validation/test split in the Data tab before "
+            "running the LSTM."
         )
+
     # Select computation device
     device = torch.device(
         "cuda" if torch.cuda.is_available() else "cpu"
     )
 
-    # Build configuration from GUI inputs
-    lstm_config = {
-        "input_size": 1,
-        "hidden_size": int(hidden_size),
-        "output_size": 1,
-        "sequence_length": int(sequence_length),
-        "batch_size": int(batch_size),
-        "learning_rate": float(learning_rate),
-        "num_epochs": int(num_epochs),
-        "patience": int(patience)
-    }
+    # Remove files from the previous model run
+    # reset_model_run()
 
-    # Run the existing LSTM pipeline
+    # ====================================================
+    # TRAIN NEW MODEL
+    # ====================================================
+
+    if lstm_mode == "Train New Model":
+
+        load_pretrained = False
+
+        # Build configuration from GUI values
+        lstm_config = {
+            "input_size": 1,
+            "hidden_size": int(hidden_size),
+            "output_size": 1,
+            "sequence_length": int(sequence_length),
+            "batch_size": int(batch_size),
+            "learning_rate": float(learning_rate),
+            "num_epochs": int(num_epochs),
+            "patience": int(patience)
+        }
+
+        # Save the configuration actually used for training
+        with open(CONFIG_PATH_LSTM, "w") as file:
+            json.dump(
+                lstm_config,
+                file,
+                indent=4
+            )
+
+    # ====================================================
+    # USE PRETRAINED MODEL
+    # ====================================================
+
+    elif lstm_mode == "Use Pretrained Model":
+
+        load_pretrained = True
+
+        # Check required files
+        if pretrained_config_file is None:
+            raise gr.Error(
+                "Please upload the JSON configuration associated "
+                "with the pretrained LSTM."
+            )
+
+        if pretrained_weights_file is None:
+            raise gr.Error(
+                "Please upload the .pt file containing the pretrained "
+                "LSTM weights."
+            )
+
+        # Copy uploaded files to fixed GUI paths
+        shutil.copy2(
+            pretrained_config_file,
+            CONFIG_PATH_LSTM
+        )
+
+        shutil.copy2(
+            pretrained_weights_file,
+            WEIGHTS_PATH_LSTM
+        )
+
+        # Load configuration
+        with open(CONFIG_PATH_LSTM, "r") as file:
+            lstm_config = json.load(file)
+
+    else:
+        raise gr.Error("Invalid LSTM mode.")
+
+    # ====================================================
+    # Set seed for reproducibility
+    # ====================================================
+
+    utils.set_seed(SEED)
+
+    # ====================================================
+    # RUN LSTM
+    # ====================================================
+
     lstm_results = lstm_model.run_lstm(
         train_norm,
         val_norm,
         test_norm,
         lstm_config,
         device,
-        weights_path=None,
-        load_pretrained=False,
-        save_weights = False
+        WEIGHTS_PATH_LSTM,
+        load_pretrained
     )
 
-    # Return predictions to the original scale
+    # Return predictions to original scale
     y_train_pred_lstm = utils.inverse_zscore(
         lstm_results["train_pred"],
         train_mean,
@@ -428,8 +627,8 @@ def run_lstm_from_gui(
         train_std
     )
 
-    # Align actual values with the sliding-window predictions
-    seq_len = lstm_config["sequence_length"]
+    # Align actual values with sliding-window predictions
+    seq_len = int(lstm_config["sequence_length"])
 
     y_train_actual_lstm = (
         train[seq_len:]
@@ -465,17 +664,24 @@ def run_lstm_from_gui(
         y_test_pred_lstm
     )
 
+    # Create test prediction plot
     prediction_plot = plot_predictions(
-    y_test_actual_lstm,
-    y_test_pred_lstm,
-    model_name="LSTM"
-)
+        y_test_actual_lstm,
+        y_test_pred_lstm,
+        model_name="LSTM"
+    )
+
+    # Training time is None when pretrained weights are used
+    training_time = lstm_results["training_time"]
+
+    if training_time is not None:
+        training_time = float(training_time)
 
     return (
         float(train_mse),
         float(val_mse),
         float(test_mse),
-        float(lstm_results["training_time"]), 
+        training_time,
         float(lstm_results["inference_time"]),
         prediction_plot
     )
@@ -808,6 +1014,14 @@ def run_lstm_tuning_gui(
         key: best_config[key]
         for key in editable_parameters
     }
+
+    # Save best configuration found by random search
+    with open(BEST_CONFIG_PATH_LSTM, "w") as file:
+        json.dump(
+            best_config,
+            file,
+            indent=4
+        )
 
     return best_config
 

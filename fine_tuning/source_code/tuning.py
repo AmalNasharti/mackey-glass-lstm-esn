@@ -4,7 +4,6 @@ import torch.optim as optim
 from main.source_code import lstm_model
 from main.source_code import esn_model
 from main.source_code import utils
-import torch
 import json
 import pandas as pd
 import random
@@ -189,23 +188,6 @@ def generate_configs(
 
     return configs_df
 
-def set_seed(seed):
-    """
-    Set random seeds for reproducible model initialization and training.
-
-    Parameters
-    ----------
-    seed : int
-        Random seed.
-    """
-
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-
 def val_loss_lstm(train_norm, val_norm, config, device):
     """
     Train an LSTM using a given hyperparameter configuration and
@@ -389,7 +371,7 @@ def evaluate_config(
 
         print(f"Calculating validation loss with seed {seed}...")
 
-        set_seed(seed)
+        utils.set_seed(seed)
 
         if model == "lstm":
             loss = val_loss_lstm(train_norm, val_norm, config, device)
