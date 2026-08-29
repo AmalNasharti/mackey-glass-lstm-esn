@@ -500,71 +500,164 @@ with gr.Blocks(title="Time Series Prediction") as demo:
         # ====================================================
         # ESN
         # ====================================================
+
         with gr.Tab("ESN"):
+
             gr.Markdown("## ESN")
 
-            gr.Markdown("### Hyperparameters")
+            # -------------------------
+            # Select ESN mode
+            # -------------------------
 
-            # Reservoir size
-            esn_reservoir_size = gr.Number(
-                value=100,
-                label="Reservoir size",
-                info="Suggested search range for MG17: 50–200",
-                precision=0
+            esn_mode = gr.Radio(
+                choices=[
+                    "Train New Model",
+                    "Use Pretrained Model"
+                ],
+                value="Train New Model",
+                label="ESN Mode"
             )
 
-            # Spectral radius
-            esn_spectral_radius = gr.Number(
-                value=0.9,
-                label="Spectral radius",
-                info="Suggested search range for MG17: 0.70–0.99"
+            # ====================================================
+            # TRAIN NEW MODEL
+            # ====================================================
+
+            with gr.Group(visible=True) as esn_train_section:
+
+                gr.Markdown("### Train New Model")
+
+                gr.Markdown(
+                    "Define the hyperparameters manually or optionally "
+                    "load them from a JSON configuration file."
+                )
+
+                # Optional JSON used only to pre-fill the hyperparameter fields
+                esn_train_config_file = gr.File(
+                    label="Optional Configuration (.json)",
+                    file_types=[".json"],
+                    type="filepath"
+                )
+
+                gr.Markdown("### Hyperparameters")
+
+                esn_reservoir_size = gr.Number(
+                    value=100,
+                    label="Reservoir size",
+                    info="Suggested for MG17: 50–200",
+                    precision=0
+                )
+
+                esn_spectral_radius = gr.Number(
+                    value=0.9,
+                    label="Spectral radius",
+                    info="Suggested for MG17: 0.70–0.99"
+                )
+
+                esn_reservoir_connectivity = gr.Number(
+                    value=0.05,
+                    label="Reservoir connectivity",
+                    info="Suggested for MG17: 0.01–0.10"
+                )
+
+                esn_input_scaling = gr.Number(
+                    value=0.5,
+                    label="Input scaling",
+                    info="Suggested for MG17: 0.10–1.00"
+                )
+
+                esn_washout = gr.Number(
+                    value=100,
+                    label="Washout",
+                    info="Suggested for MG17: 50–500",
+                    precision=0
+                )
+
+                esn_alpha = gr.Number(
+                    value=0.1,
+                    label="Alpha",
+                    info="Suggested for MG17: 0.05–1.00"
+                )
+
+                esn_ridge = gr.Number(
+                    value=1e-6,
+                    label="Ridge",
+                    info="Suggested for MG17: 1e-8–1e-4"
+                )
+
+                # If a JSON is uploaded, use it to fill the fields
+                esn_train_config_file.change(
+                    fn=utils.load_esn_config,
+                    inputs=esn_train_config_file,
+                    outputs=[
+                        esn_reservoir_size,
+                        esn_spectral_radius,
+                        esn_reservoir_connectivity,
+                        esn_input_scaling,
+                        esn_washout,
+                        esn_alpha,
+                        esn_ridge
+                    ]
+                )
+
+            # ====================================================
+            # USE PRETRAINED MODEL
+            # ====================================================
+
+            with gr.Group(visible=False) as esn_pretrained_section:
+
+                gr.Markdown("### Use Pretrained Model")
+
+                gr.Markdown(
+                    "Load the configuration and weights of a previously trained ESN."
+                )
+
+                esn_pretrained_config_file = gr.File(
+                    label="Configuration (.json)",
+                    file_types=[".json"],
+                    type="filepath"
+                )
+
+                esn_pretrained_weights_file = gr.File(
+                    label="Weights (.pt)",
+                    file_types=[".pt"],
+                    type="filepath"
+                )
+
+            # ====================================================
+            # SWITCH BETWEEN MODES
+            # ====================================================
+
+            def update_esn_mode(mode):
+                train_mode = mode == "Train New Model"
+
+                return (
+                    gr.update(visible=train_mode),
+                    gr.update(visible=not train_mode)
+                )
+
+            esn_mode.change(
+                fn=update_esn_mode,
+                inputs=esn_mode,
+                outputs=[
+                    esn_train_section,
+                    esn_pretrained_section
+                ]
             )
 
-            # Reservoir connectivity
-            esn_reservoir_connectivity = gr.Number(
-                value=0.05,
-                label="Reservoir connectivity",
-                info="Suggested search range for MG17: 0.01–0.10"
-            )
+            # ====================================================
+            # RUN ESN
+            # ====================================================
 
-            # Input scaling
-            esn_input_scaling = gr.Number(
-                value=0.5,
-                label="Input scaling",
-                info="Suggested search range for MG17: 0.10–1.00"
-            )
-            # Washout
-            esn_washout = gr.Number(
-                value=100,
-                label="Washout",
-                info="Suggested search range for MG17: 50–500",
-                precision=0
-            )
-
-            # Leaky integration parameter
-            esn_alpha = gr.Number(
-                value=0.1,
-                label="Alpha",
-                info="Suggested search range for MG17: 0.05–1.00"
-            )
-
-            # Ridge regularization coefficient
-            esn_ridge = gr.Number(
-                value=1e-6,
-                label="Ridge",
-                info="Suggested search range for MG17: 1e-8–1e-4"
-            )
-
-            # Button for running LSTM 
             run_esn_button = gr.Button(
                 "Run ESN",
                 variant="primary"
             )
 
-            # Outputs
-            gr.Markdown(
-                "### Results "
-            )
+            # ====================================================
+            # RESULTS
+            # ====================================================
+
+            gr.Markdown("### Results")
 
             train_mse_esn_output = gr.Number(
                 label="Train MSE",
@@ -595,6 +688,10 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 label="Actual vs Predicted — Test Set"
             )
 
+            # ====================================================
+            # CONNECT BUTTON TO BACKEND FUNCTION
+            # ====================================================
+
             run_esn_button.click(
                 fn=utils.run_esn_from_gui,
                 inputs=[
@@ -607,13 +704,19 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     test_norm_state,
                     train_mean_state,
                     train_std_state,
+
+                    esn_mode,
+
                     esn_reservoir_size,
                     esn_spectral_radius,
                     esn_reservoir_connectivity,
                     esn_input_scaling,
                     esn_washout,
                     esn_alpha,
-                    esn_ridge
+                    esn_ridge,
+
+                    esn_pretrained_config_file,
+                    esn_pretrained_weights_file
                 ],
                 outputs=[
                     train_mse_esn_output,
@@ -625,7 +728,51 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 ]
             )
 
+            # ====================================================
+            # DOWNLOAD ESN FILES
+            # ====================================================
+
+            gr.Markdown("### Download Model Files")
+
+            with gr.Row():
+
+                download_esn_config_button = gr.Button(
+                    "Download Configuration",
+                    variant="primary"
+                )
+
+                download_esn_weights_button = gr.Button(
+                    "Download Weights",
+                    variant="primary"
+                )
+
+            # Files returned to the user
+            esn_config_download = gr.File(
+                label="ESN Configuration"
+            )
+
+            esn_weights_download = gr.File(
+                label="ESN Weights"
+            )
+
+            # Return the current ESN configuration file
+            download_esn_config_button.click(
+                fn=utils.get_esn_config_file,
+                inputs=[],
+                outputs=esn_config_download
+            )
+
+            # Return the current ESN weights file
+            download_esn_weights_button.click(
+                fn=utils.get_esn_weights_file,
+                inputs=[],
+                outputs=esn_weights_download
+            )
+            
+            # ====================================================
             # Hyperparameter Tuning
+            # ====================================================
+
             with gr.Accordion(
                 "Automatic Hyperparameter Tuning",
                 open=False
@@ -633,14 +780,17 @@ with gr.Blocks(title="Time Series Prediction") as demo:
 
                 gr.Markdown(
                     """
-                    Random search evaluates different ESN hyperparameter configurations
-                    and returns the configuration with the best validation performance.
+                    Random search evaluates multiple ESN hyperparameter configurations
+                    and returns the best configuration found.
 
-                    ESN tuning is generally faster than LSTM tuning.
+                    **Note:** ESN tuning is generally faster than LSTM tuning, but execution
+                    time still depends on the number of trials and runs per configuration.
 
-                    Suggested values:
+                    Suggested settings:
                     - `trials = 150`
                     - `runs per configuration = 10`
+
+                    **Best configuration found:** *TO DO: insert best configuration.*
                     """
                 )
 
@@ -671,6 +821,15 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     label="Best ESN Configuration"
                 )
 
+                download_best_esn_config_button = gr.Button(
+                    "Download Best Configuration",
+                    variant="primary"
+                )
+
+                best_esn_config_download = gr.File(
+                    label="Best ESN Configuration File"
+                )
+
                 start_esn_tuning_button.click(
                     fn=utils.run_esn_tuning_gui,
                     inputs=[
@@ -681,6 +840,12 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                         esn_n_seeds
                     ],
                     outputs=best_esn_config_output
+                )
+
+                download_best_esn_config_button.click(
+                    fn=utils.get_best_esn_config_file,
+                    inputs=[],
+                    outputs=best_esn_config_download
                 )
 
 

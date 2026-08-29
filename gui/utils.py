@@ -27,6 +27,10 @@ GUI_CONFIG_DIR = BASE_DIR / "gui" / "config"
 WEIGHTS_PATH_LSTM = GUI_WEIGHTS_DIR / "lstm_weights.pt"
 CONFIG_PATH_LSTM = GUI_CONFIG_DIR / "lstm_config.json"
 
+# Training ESN
+CONFIG_PATH_ESN = GUI_WEIGHTS_DIR / "esn_weights.pt"
+WEIGHTS_PATH_ESN = GUI_CONFIG_DIR / "esn_config.json"
+
 # Parameter tuning LSTM
 SEARCH_SPACE_PATH_LSTM = BASE_DIR / "fine_tuning"/ "input" / "search_spaces" / "lstm_search_space.json"
 CONFIGS_PATH_LSTM = GUI_FINE_TUNING_DIR / "configs_lstm.csv"
@@ -39,6 +43,7 @@ SEARCH_SPACE_PATH_ESN = BASE_DIR / "fine_tuning" / "input" / "search_spaces" / "
 CONFIGS_PATH_ESN = GUI_FINE_TUNING_DIR / "configs_esn.csv"
 RESULTS_PATH_ESN = GUI_FINE_TUNING_DIR / "results_esn.csv"
 BEST_RESULTS_PATH_ESN = GUI_FINE_TUNING_DIR / "best_result_esn.csv"
+BEST_CONFIG_PATH_ESN = GUI_FINE_TUNING_DIR / "best_config_esn.json"
 
 def reset_gui():
     """
@@ -171,7 +176,7 @@ def load_lstm_config(config_file):
         )
 
     # Load configuration
-    with open(config_file, "r") as file:
+    with open(config_file, "r", encoding="utf-8") as file:
         config = json.load(file)
 
     # Check required parameters
@@ -201,55 +206,75 @@ def load_lstm_config(config_file):
         float(config["learning_rate"])
     )
 
-def save_uploaded_lstm_config(config_file):
+def load_esn_config(config_file):
     """
-    Save an uploaded LSTM configuration inside gui/config.
+    Load an ESN configuration from a JSON file.
 
     Parameters
     ----------
     config_file : str
-        Path to the uploaded JSON file.
+        Path to the uploaded JSON configuration file.
 
     Returns
     -------
-    saved_path : str
-        Path to the saved configuration file.
+    reservoir_size : int
+        Number of reservoir units.
+    spectral_radius : float
+        Spectral radius of the reservoir matrix.
+    reservoir_connectivity : float
+        Fraction of non-zero reservoir connections.
+    input_scaling : float
+        Scaling factor applied to the input weights.
+    washout : int
+        Number of initial reservoir states discarded.
+    alpha : float
+        Leaky integration parameter.
+    ridge : float
+        Ridge regularization coefficient.
     """
 
     if config_file is None:
-        return None
+        raise gr.Error(
+            "Please upload a JSON configuration file."
+        )
 
-    shutil.copy2(
-        config_file,
-        CONFIG_PATH_LSTM
+    # Load configuration
+    with open(config_file, "r", encoding="utf-8") as file:
+        config = json.load(file)
+
+    # Check required parameters
+    required_parameters = [
+        "reservoir_size",
+        "spectral_radius",
+        "reservoir_connectivity",
+        "input_scaling",
+        "washout",
+        "alpha",
+        "ridge"
+    ]
+
+    missing_parameters = [
+        parameter
+        for parameter in required_parameters
+        if parameter not in config
+    ]
+
+    if missing_parameters:
+        raise gr.Error(
+            "Invalid ESN configuration. Missing parameters: "
+            + ", ".join(missing_parameters)
+        )
+
+    # Return hyperparameters in the same order as the GUI outputs
+    return (
+        int(config["reservoir_size"]),
+        float(config["spectral_radius"]),
+        float(config["reservoir_connectivity"]),
+        float(config["input_scaling"]),
+        int(config["washout"]),
+        float(config["alpha"]),
+        float(config["ridge"])
     )
-
-    return str(CONFIG_PATH_LSTM)
-
-def save_uploaded_lstm_weights(weights_file):
-    """
-    Save uploaded LSTM weights inside gui/weights.
-
-    Parameters
-    ----------
-    weights_file : str
-        Path to the uploaded .pt file.
-
-    Returns
-    -------
-    saved_path : str
-        Path to the saved weights file.
-    """
-
-    if weights_file is None:
-        return None
-
-    shutil.copy2(
-        weights_file,
-        WEIGHTS_PATH_LSTM
-    )
-
-    return str(WEIGHTS_PATH_LSTM)
 
 def get_lstm_config_file():
     if not CONFIG_PATH_LSTM.exists():
@@ -267,6 +292,32 @@ def get_lstm_weights_file():
 
     return str(WEIGHTS_PATH_LSTM)
 
+def get_esn_config_file():
+    """
+    Return the current ESN configuration file.
+    """
+
+    if not CONFIG_PATH_ESN.exists():
+        raise gr.Error(
+            "No ESN configuration is available. "
+            "Run the model first."
+        )
+
+    return str(CONFIG_PATH_ESN)
+
+def get_esn_weights_file():
+    """
+    Return the current ESN weights file.
+    """
+
+    if not WEIGHTS_PATH_ESN.exists():
+        raise gr.Error(
+            "No ESN weights are available. "
+            "Run the model first."
+        )
+
+    return str(WEIGHTS_PATH_ESN)
+
 def get_best_lstm_config_file():
     """
     Return the best LSTM configuration found by random search.
@@ -279,6 +330,19 @@ def get_best_lstm_config_file():
         )
 
     return str(BEST_CONFIG_PATH_LSTM)
+
+def get_best_esn_config_file():
+    """
+    Return the best ESN configuration found by random search.
+    """
+
+    if not BEST_CONFIG_PATH_ESN.exists():
+        raise gr.Error(
+            "No tuned ESN configuration is available. "
+            "Run the hyperparameter tuning first."
+        )
+
+    return str(BEST_CONFIG_PATH_ESN)
 
 def split_and_normalize(input_series, train_end, val_end):
     """
@@ -542,7 +606,7 @@ def run_lstm_from_gui(
         }
 
         # Save the configuration actually used for training
-        with open(CONFIG_PATH_LSTM, "w") as file:
+        with open(CONFIG_PATH_LSTM, "w", encoding="utf-8") as file:
             json.dump(
                 lstm_config,
                 file,
@@ -582,7 +646,7 @@ def run_lstm_from_gui(
         )
 
         # Load configuration
-        with open(CONFIG_PATH_LSTM, "r") as file:
+        with open(CONFIG_PATH_LSTM, "r", encoding="utf-8") as file:
             lstm_config = json.load(file)
 
     else:
@@ -696,17 +760,20 @@ def run_esn_from_gui(
     test_norm,
     train_mean,
     train_std,
+    esn_mode,
     reservoir_size,
     spectral_radius,
     reservoir_connectivity,
     input_scaling,
     washout,
     alpha,
-    ridge
+    ridge,
+    pretrained_config_file,
+    pretrained_weights_file
 ):
     """
-    Run the ESN using hyperparameters provided through the GUI
-    and return model performance metrics and the prediction plot.
+    Run the ESN from the GUI using either a newly trained model
+    or a pretrained model.
 
     Parameters
     ----------
@@ -720,6 +787,8 @@ def run_esn_from_gui(
         Mean of the training set used for normalization.
     train_std : float
         Standard deviation of the training set used for normalization.
+    esn_mode : str
+        Selected ESN mode: "Train New Model" or "Use Pretrained Model".
     reservoir_size : int
         Number of reservoir units.
     spectral_radius : float
@@ -734,6 +803,10 @@ def run_esn_from_gui(
         Leaky integration parameter.
     ridge : float
         Ridge regularization coefficient.
+    pretrained_config_file : str or None
+        Path to the uploaded pretrained configuration file.
+    pretrained_weights_file : str or None
+        Path to the uploaded pretrained weights file.
 
     Returns
     -------
@@ -743,12 +816,12 @@ def run_esn_from_gui(
         Validation mean squared error.
     test_mse : float
         Test mean squared error.
-    training_time : float
-        ESN training time in seconds.
+    training_time : float or None
+        Training time in seconds. None when a pretrained model is used.
     inference_time : float
-        ESN inference time in seconds.
+        Test-set inference time in seconds.
     prediction_plot : matplotlib.figure.Figure
-        Actual vs predicted values on the test set.
+        Plot comparing actual and predicted test-set values.
     """
 
     # Check that a dataset has been uploaded
@@ -762,7 +835,8 @@ def run_esn_from_gui(
     if train_norm is None or val_norm is None or test_norm is None:
         raise gr.Error(
             "The dataset has not been split yet. Please define and apply "
-            "the train/validation/test split in the Data tab before running the ESN."
+            "the train/validation/test split in the Data tab before "
+            "running the ESN."
         )
 
     # Select computation device
@@ -770,27 +844,93 @@ def run_esn_from_gui(
         "cuda" if torch.cuda.is_available() else "cpu"
     )
 
-    # Build ESN configuration from GUI inputs
-    esn_config = {
-        "reservoir_size": int(reservoir_size),
-        "spectral_radius": float(spectral_radius),
-        "reservoir_connectivity": float(reservoir_connectivity),
-        "input_scaling": float(input_scaling),
-        "washout": int(washout),
-        "alpha": float(alpha),
-        "ridge": float(ridge)
-    }
+    # ====================================================
+    # TRAIN NEW MODEL
+    # ====================================================
 
-    # Run ESN
+    if esn_mode == "Train New Model":
+
+        load_pretrained = False
+
+        # Build configuration from GUI values
+        esn_config = {
+            "reservoir_size": int(reservoir_size),
+            "spectral_radius": float(spectral_radius),
+            "reservoir_connectivity": float(reservoir_connectivity),
+            "input_scaling": float(input_scaling),
+            "washout": int(washout),
+            "alpha": float(alpha),
+            "ridge": float(ridge)
+        }
+
+        # Save the configuration actually used for training
+        with open(CONFIG_PATH_ESN, "w", encoding="utf-8") as file:
+            json.dump(
+                esn_config,
+                file,
+                indent=4
+            )
+
+    # ====================================================
+    # USE PRETRAINED MODEL
+    # ====================================================
+
+    elif esn_mode == "Use Pretrained Model":
+
+        load_pretrained = True
+
+        # Check required files
+        if pretrained_config_file is None:
+            raise gr.Error(
+                "Please upload the JSON configuration associated "
+                "with the pretrained ESN."
+            )
+
+        if pretrained_weights_file is None:
+            raise gr.Error(
+                "Please upload the .pt file containing the pretrained "
+                "ESN weights."
+            )
+
+        # Copy uploaded files to fixed GUI paths
+        shutil.copy2(
+            pretrained_config_file,
+            CONFIG_PATH_ESN
+        )
+
+        shutil.copy2(
+            pretrained_weights_file,
+            WEIGHTS_PATH_ESN
+        )
+
+        # Load configuration
+        with open(CONFIG_PATH_ESN, "r", encoding="utf-8") as file:
+            esn_config = json.load(file)
+
+    else:
+        raise gr.Error("Invalid ESN mode.")
+
+    # ====================================================
+    # Set seed for reproducibility
+    # ====================================================
+
+    utils.set_seed(SEED)
+
+    # ====================================================
+    # RUN ESN
+    # ====================================================
+
     esn_results = esn_model.run_esn(
         train_norm,
         val_norm,
         test_norm,
         esn_config,
-        device
+        device,
+        WEIGHTS_PATH_ESN,
+        load_pretrained
     )
 
-    # Return predictions to the original scale
+    # Return predictions to original scale
     y_train_pred_esn = utils.inverse_zscore(
         esn_results["train_pred"],
         train_mean,
@@ -841,18 +981,24 @@ def run_esn_from_gui(
         y_test_pred_esn
     )
 
-    # Create test-set prediction plot
+    # Create test prediction plot
     prediction_plot = plot_predictions(
         y_test_actual_esn,
         y_test_pred_esn,
         model_name="ESN"
     )
 
+    # Training time is None when pretrained weights are used
+    training_time = esn_results["training_time"]
+
+    if training_time is not None:
+        training_time = float(training_time)
+
     return (
         float(train_mse),
         float(val_mse),
         float(test_mse),
-        float(esn_results["training_time"]),
+        training_time,
         float(esn_results["inference_time"]),
         prediction_plot
     )
@@ -1016,7 +1162,7 @@ def run_lstm_tuning_gui(
     }
 
     # Save best configuration found by random search
-    with open(BEST_CONFIG_PATH_LSTM, "w") as file:
+    with open(BEST_CONFIG_PATH_LSTM, "w", encoding="utf-8") as file:
         json.dump(
             best_config,
             file,
@@ -1049,5 +1195,13 @@ def run_esn_tuning_gui(
         results_path=RESULTS_PATH_ESN,
         best_results_path=BEST_RESULTS_PATH_ESN
     )
+
+    # Save best configuration found by random search
+    with open(BEST_CONFIG_PATH_ESN, "w", encoding="utf-8") as file:
+        json.dump(
+            best_config,
+            file,
+            indent=4
+        )
 
     return best_config
