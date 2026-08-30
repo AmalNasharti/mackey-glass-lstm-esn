@@ -5,7 +5,7 @@ This repository implements two recurrent approaches for **one-step-ahead time-se
 - **Long Short-Term Memory (LSTM)**
 - **Echo State Network (ESN)**
 
-The project has currently been tested on the **Mackey-Glass chaotic time series with delay parameter τ = 17 (MG17)**. Performance on other time series has not yet been validated and will be investigated in future work.
+The project has currently been tested on the **Mackey-Glass chaotic time series with delay parameter τ = 17 (MG17)**.
 
 ## Repository Workflows
 
