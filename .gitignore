@@ -2,4 +2,3 @@
 **/__pycache__/
 *.pyc
 tests
-network_parameters.ipynb
