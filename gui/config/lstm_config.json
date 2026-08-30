@@ -1,0 +1,10 @@
+{
+    "input_size": 1,
+    "hidden_size": 16,
+    "output_size": 1,
+    "sequence_length": 100,
+    "batch_size": 16,
+    "learning_rate": 0.0013258369731779726,
+    "num_epochs": 200,
+    "patience": 10
+}

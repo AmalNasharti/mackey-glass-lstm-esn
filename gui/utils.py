@@ -184,7 +184,9 @@ def load_lstm_config(config_file):
         "hidden_size",
         "sequence_length",
         "batch_size",
-        "learning_rate"
+        "learning_rate",
+        "num_epochs",
+        "patience"
     ]
 
     missing_parameters = [
@@ -203,7 +205,9 @@ def load_lstm_config(config_file):
         int(config["hidden_size"]),
         int(config["sequence_length"]),
         int(config["batch_size"]),
-        float(config["learning_rate"])
+        float(config["learning_rate"]),
+        int(config["num_epochs"]),
+        int(config["patience"])
     )
 
 def load_esn_config(config_file):
@@ -506,10 +510,10 @@ def run_lstm_from_gui(
     sequence_length,
     batch_size,
     learning_rate,
+    num_epochs,
+    patience,
     pretrained_config_file,
-    pretrained_weights_file,
-    num_epochs=NUM_EPOCHS,
-    patience=PATIENCE
+    pretrained_weights_file
 ):
     """
     Run the LSTM from the GUI using either a newly trained model
@@ -1153,7 +1157,9 @@ def run_lstm_tuning_gui(
         "hidden_size",
         "sequence_length",
         "batch_size",
-        "learning_rate"
+        "learning_rate",
+        "num_epochs",
+        "patience"
     ]
 
     best_config = {

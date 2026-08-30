@@ -8,11 +8,11 @@
 
     "lstm": {
         "input_size": 1,
-        "hidden_size": 32,
+        "hidden_size": 16,
         "output_size": 1,
-        "sequence_length": 15,
+        "sequence_length": 20,
         "batch_size": 16,
-        "learning_rate": 0.002,
+        "learning_rate": 0.001,
         "num_epochs": 100,
         "patience": 5
     },

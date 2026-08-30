@@ -223,11 +223,6 @@ with gr.Blocks(title="Time Series Prediction") as demo:
 
                 gr.Markdown("### Hyperparameters")
 
-                gr.Markdown(
-                    "Fixed training parameters: "
-                    "`num_epochs = 100`, `patience = 5`"
-                )
-
                 lstm_hidden_size = gr.Number(
                     value=128,
                     label="Hidden size",
@@ -255,6 +250,18 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     info="Suggested for MG17: 1e-4–1e-2"
                 )
 
+                lstm_num_epochs = gr.Number(
+                    value=100,
+                    label="Number of epochs",
+                    precision=0
+                )
+
+                lstm_patience = gr.Number(
+                    value=5,
+                    label="Early stopping patience",
+                    precision=0
+                )
+
                 # If a JSON is uploaded, use it to fill the fields
                 lstm_train_config_file.change(
                     fn=utils.load_lstm_config,
@@ -263,7 +270,9 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                         lstm_hidden_size,
                         lstm_sequence_length,
                         lstm_batch_size,
-                        lstm_learning_rate
+                        lstm_learning_rate,
+                        lstm_num_epochs,
+                        lstm_patience
                     ]
                 )
 
@@ -385,6 +394,8 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     lstm_sequence_length,
                     lstm_batch_size,
                     lstm_learning_rate,
+                    lstm_num_epochs,
+                    lstm_patience,
 
                     lstm_pretrained_config_file,
                     lstm_pretrained_weights_file

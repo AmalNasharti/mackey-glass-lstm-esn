@@ -1,8 +1,6 @@
 from pathlib import Path
 import json
 import pandas as pd
-import random
-import numpy as np
 import torch
 from main.source_code import esn_model
 from main.source_code import lstm_model
