@@ -33,6 +33,10 @@ esn_config = config["esn"]
 
 input_series = pd.read_csv(DATA_PATH)['value']
 
+# ======================================
+# CHOOSE TO TRAIN A NEW MODEL OR RUN 
+# A PRETRAINED ONE
+# ======================================
 LOAD_PRETRAINED_LSTM = False
 LOAD_PRETRAINED_ESN = False
 

@@ -1,0 +1,9 @@
+{
+    "reservoir_size": 100,
+    "spectral_radius": 0.9,
+    "reservoir_connectivity": 0.05,
+    "input_scaling": 0.5,
+    "washout": 100,
+    "alpha": 0.1,
+    "ridge": 1e-06
+}
