@@ -47,7 +47,14 @@ with gr.Blocks(title="Time Series Prediction") as demo:
 
             gr.Markdown(
                 """
-                **Input format:** Upload a CSV file containing the time series in a column named `value`. Do not include a time column. Values must be equally spaced in time, for example one value every second, minute, or hour. The x-axis of the plots represents these time units.
+                **Input format:** Upload a CSV file containing the time series in a column named `value`. 
+                Do not include a time column. Values must be equally spaced in time, for example one value 
+                every second, minute, or hour. The x-axis of the plots represents these time units.
+                            
+                **Note:** The application has currently been tested only on the Mackey-Glass 
+                chaotic time series with delay parameter τ = 17 (MG17). Model performance 
+                is therefore not guaranteed for other time series. Validation and evaluation 
+                on different time series are planned as future research work.
                 """
             )
 
@@ -118,6 +125,14 @@ with gr.Blocks(title="Time Series Prediction") as demo:
 
             gr.Markdown(
                 "### 3. Train / Validation / Test Split"
+            )
+
+            gr.Markdown(
+                """
+                    **Suggested split for MG17:** 6000 samples for training (60%), 1000 for validation (10%), 
+                    and 3000 for testing (30%). A larger test set allows for a more robust evaluation 
+                    of model generalization on unseen data.
+                """
             )
 
             with gr.Row():

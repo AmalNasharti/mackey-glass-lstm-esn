@@ -21,7 +21,7 @@ OUTPUT_DIR = BASE_DIR / "main" / "output"
 CONFIG_PATH = BASE_DIR / "main" / "input" / "config.json"
 
 WEIGHTS_PATH_LSTM = BASE_DIR / "main" / "weights" / "best_params_lstm.pt"
-WEIGHTS_PATH_ESN = BASE_DIR / "main" / "weights" / "best_params_ens.pt"
+WEIGHTS_PATH_ESN = BASE_DIR / "main" / "weights" / "best_params_esn.pt"
 
 # Clear results from previous executions
 utils.clear_directory(OUTPUT_DIR)
@@ -43,8 +43,6 @@ LOAD_PRETRAINED_ESN = False
 # ======================================
 SEED = config["seed"]
 
-utils.set_seed(SEED)
-
 # ======================================
 # DATA PREPROCESSING
 # ======================================
@@ -54,6 +52,9 @@ train_norm, val_norm, test_norm, train_mean, train_std = utils.zscore_normalize(
 # ======================================
 # LSTM
 # ======================================
+# Set seed
+utils.set_seed(SEED)
+
 # Run LSTM
 lstm_results = lstm_model.run_lstm(train_norm, val_norm, test_norm, lstm_config, device, WEIGHTS_PATH_LSTM, LOAD_PRETRAINED_LSTM)
 
@@ -73,6 +74,9 @@ test_mse_lstm  = utils.mse(y_test_actual_lstm, y_test_pred_lstm)
 # ======================================
 # ESN
 # ======================================
+# Set seed
+utils.set_seed(SEED)
+
 # Run ESN
 esn_results = esn_model.run_esn(train_norm, val_norm, test_norm, esn_config, device, WEIGHTS_PATH_ESN, LOAD_PRETRAINED_ESN)
 

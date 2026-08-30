@@ -24,12 +24,12 @@ GUI_WEIGHTS_DIR = BASE_DIR / "gui" / "weights"
 GUI_CONFIG_DIR = BASE_DIR / "gui" / "config"
 
 # Training LSTM
-WEIGHTS_PATH_LSTM = GUI_WEIGHTS_DIR / "lstm_weights.pt"
 CONFIG_PATH_LSTM = GUI_CONFIG_DIR / "lstm_config.json"
+WEIGHTS_PATH_LSTM = GUI_WEIGHTS_DIR / "lstm_weights.pt"
 
 # Training ESN
-CONFIG_PATH_ESN = GUI_WEIGHTS_DIR / "esn_weights.pt"
-WEIGHTS_PATH_ESN = GUI_CONFIG_DIR / "esn_config.json"
+CONFIG_PATH_ESN = GUI_WEIGHTS_DIR / "esn_config.json"
+WEIGHTS_PATH_ESN = GUI_CONFIG_DIR / "esn_weights.pt"
 
 # Parameter tuning LSTM
 SEARCH_SPACE_PATH_LSTM = BASE_DIR / "fine_tuning"/ "input" / "search_spaces" / "lstm_search_space.json"
