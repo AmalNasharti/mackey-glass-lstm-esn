@@ -230,7 +230,7 @@ def save_predictions(y_actual, y_pred, model_name, save_path, n_points=1000):
 
 def clear_directory(dir):
     """
-    Remove all files from the specified directory.
+    Remove all files from the specified directory or create directory if does not exist.
 
     Parameters
     ----------
@@ -240,7 +240,11 @@ def clear_directory(dir):
 
     dir = Path(dir)
 
-    # Remove all files in the output directory
-    for file in dir.iterdir():
-        if file.is_file():
-            file.unlink()
+    if dir.exists():
+        # Remove all files in the output directory
+        for file in dir.iterdir():
+            if file.is_file():
+                file.unlink()
+    else:
+        # Create:
+        dir.mkdir(parents=True, exist_ok=True)
