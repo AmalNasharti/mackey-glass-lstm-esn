@@ -1,2 +1,2 @@
 trial,input_size,hidden_size,output_size,sequence_length,batch_size,learning_rate,num_epochs,patience,mean_val_loss,std_val_loss
-2.0,1.0,8.0,1.0,100.0,16.0,0.0015169980582701848,50.0,5.0,3.488068284097704e-05,0.0
+20.0,1.0,32.0,1.0,100.0,16.0,0.0022938595363362463,50.0,15.0,2.387883046538806e-06,4.362386918812496e-07

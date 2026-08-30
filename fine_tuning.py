@@ -20,13 +20,13 @@ BEST_RESULTS_PATH_ESN = BASE_DIR / "fine_tuning" / "output" / "best_result_esn.c
 
 # Parameters
 MODEL_LSTM =  "lstm"
-N_CONFIG_LSTM = 2
-SEEDS_LSTM = range(1)
+N_CONFIG_LSTM = 50
+SEEDS_LSTM = range(5)
 RESTART_LSTM = True
 
 MODEL_ESN = "esn"
-N_CONFIG_ESN = 10
-SEEDS_ESN = range(5)
+N_CONFIG_ESN = 150
+SEEDS_ESN = range(10)
 RESTART_ESN = True
 
 # Data preprocessing
