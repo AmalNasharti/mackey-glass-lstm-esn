@@ -13,8 +13,8 @@
         "sequence_length": 20,
         "batch_size": 16,
         "learning_rate": 0.001,
-        "num_epochs": 100,
-        "patience": 5
+        "num_epochs": 150,
+        "patience": 15
     },
 
     "esn": {
