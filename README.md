@@ -1,69 +1,178 @@
-# LSTM and Echo State Network for Mackey-Glass Time-Series Prediction
+# Mackey-Glass Time-Series Prediction with LSTM and ESN
 
 ## Overview
 
-This project implements and compares two recurrent neural network approaches for one-step-ahead prediction of the Mackey-Glass time series:
+This repository implements two recurrent approaches for **one-step-ahead
+time-series prediction**:
 
-- Long Short-Term Memory network (LSTM)
-- Echo State Network (ESN)
+-   **Long Short-Term Memory (LSTM)**
+-   **Echo State Network (ESN)**
 
-### `source_code/`
+The project has currently been tested on the **Mackey-Glass chaotic time
+series with delay parameter τ = 17 (MG17)**. Performance on other time
+series has not yet been validated and is planned as future work.
 
-Contains the Python source code and experiment configuration.
+The repository provides:
 
-- `main.py`: main entry point of the project. It loads the data and configuration, performs common preprocessing, runs both models, evaluates their performance, and saves the results.
-- `lstm_model.py`: contains the LSTM architecture and LSTM-specific functions for sequence generation, DataLoader creation, training, and inference.
-- `esn_model.py`: contains the Echo State Network architecture and ESN-specific functions for sequential input-target generation, reservoir computation, fitting, and inference.
-- `utils.py`: contains common utilities shared by both models, including data splitting, normalization, inverse transformation, evaluation metrics, and functions to save plots.
-- `config.json`: contains the model hyperparameters, data-splitting parameters, and random seed used for reproducibility.
+-   a command-line experiment pipeline;
+-   random-search hyperparameter tuning;
+-   a Gradio graphical user interface;
+-   training and loading of pretrained models;
+-   saving/loading of model configurations and PyTorch weights;
+-   evaluation using train, validation, and test MSE.
 
-### `input/`
+## Repository Structure
 
-Contains the Mackey-Glass time-series dataset used by the models.
+``` text
+.
+├── app.py                  # Gradio graphical interface
+├── main.py                 # Main LSTM/ESN experiment
+├── fine_tuning.py          # Hyperparameter tuning entry point
+├── requirements.txt
+│
+├── main/
+│   ├── input/              # Dataset and experiment configuration
+│   ├── output/             # Metrics and generated plots
+│   ├── weights/            # Saved LSTM and ESN weights
+│   └── source_code/
+│       ├── lstm_model.py
+│       ├── esn_model.py
+│       └── utils.py
+│
+├── fine_tuning/
+│   ├── input/
+│   │   └── search_spaces/  # LSTM and ESN random-search spaces
+│   ├── output/             # Tuning results
+│   └── source_code/
+│       └── tuning.py
+│
+└── gui/
+    ├── config/             # Configurations used by the GUI
+    ├── weights/            # Model weights used by the GUI
+    ├── fine_tuning/        # GUI tuning results and best configurations
+    └── utils.py
+```
 
-### `output/`
+## Input Data
 
-Contains the results automatically generated when the experiment is executed, including:
+The input must be a CSV file containing the time series in a column
+named:
 
-- model performance metrics;
-- original time-series visualization;
-- LSTM training and validation loss;
-- LSTM predictions;
-- ESN predictions.
+``` text
+value
+```
 
-## Configuration Parameters
+Do not include a time column. Samples must be ordered in time and
+equally spaced (for example, one observation every second, minute, or
+hour).
 
-The experiment parameters are defined in `config.json`. The configuration file contains the random seed, dataset split indices, and model-specific hyperparameters for the LSTM and ESN.
+The default MG17 experiment uses a chronological split of:
 
-### General Parameters
+-   **6000 samples (60%)** for training;
+-   **1000 samples (10%)** for validation;
+-   **3000 samples (30%)** for testing.
 
-- **`seed`**: Random seed used to improve the reproducibility of the experiments by controlling the random initialization of the models and other stochastic operations.
+The relatively large test set is used to provide a robust evaluation of
+generalization on unseen data.
 
-### Data Parameters
+## Installation
 
-- **`train_end`**: Index marking the end of the training set. All observations before this index are assigned to the training set.
-- **`val_end`**: Index marking the end of the validation set. Observations between `train_end` and `val_end` form the validation set, while the remaining observations form the test set.
+Create and activate a Python virtual environment, then install the
+dependencies:
 
-### LSTM Parameters
+``` bash
+python -m pip install -r requirements.txt
+```
 
-- **`input_size`**: Number of input features at each time step. It is set to 1 because the Mackey-Glass time series is univariate.
-- **`hidden_size`**: Number of hidden units in the LSTM layer, corresponding to the dimension of the hidden and cell states.
-- **`output_size`**: Number of values predicted by the network. It is set to 1 for one-step-ahead prediction of a univariate time series.
-- **`sequence_length`**: Number of consecutive past time steps included in each sliding-window input sequence.
-- **`batch_size`**: Number of input-target pairs processed together before updating the model parameters.
-- **`learning_rate`**: Step size used by the optimizer when updating the trainable parameters of the LSTM.
-- **`num_epochs`**: Maximum number of complete passes through the training dataset.
-- **`patience`**: Number of consecutive epochs without improvement in the validation loss allowed before early stopping terminates training.
+PyTorch can run on CPU or CUDA when a compatible GPU installation is
+available.
 
-### ESN Parameters
+## Running the Main Experiment
 
-- **`reservoir_size`**: Number of recurrent units in the reservoir and therefore the dimension of the reservoir state.
-- **`spectral_radius`**: Target spectral radius of the recurrent reservoir weight matrix, defined as the largest absolute eigenvalue of the matrix after rescaling.
-- **`reservoir_connectivity`**: Probability that a connection between two reservoir units is present. Connections not selected according to this probability are assigned a weight of zero.
-- **`input_scaling`**: Controls the magnitude of the input weights. Input weights are sampled from the uniform distribution `U(-input_scaling, input_scaling)`.
-- **`washout`**: Number of initial reservoir states discarded before fitting the readout weights, allowing the influence of the initial reservoir state to decrease.
-- **`alpha`**: Leaky-integration parameter controlling the contribution of the previous reservoir state relative to the newly computed state. The implementation uses:
+Model, data-split, and reproducibility settings are defined in:
 
-  `x(t) = alpha * x(t-1) + (1 - alpha) * x_new(t)`
+``` text
+main/input/config.json
+```
 
-- **`ridge`**: Ridge regularization coefficient used when fitting the output weights. It penalizes large readout weights and improves the numerical stability of the regression.
+Run the complete experiment with:
+
+``` bash
+python main.py
+```
+
+The script:
+
+1.  loads and splits the time series;
+2.  normalizes all splits using training-set statistics;
+3.  runs the LSTM and ESN;
+4.  returns predictions to the original scale;
+5.  computes train, validation, and test MSE;
+6.  saves metrics and plots in `main/output/`.
+
+The flags `LOAD_PRETRAINED_LSTM` and `LOAD_PRETRAINED_ESN` in `main.py`
+control whether each model is trained or loaded from its saved `.pt`
+weights.
+
+## Graphical User Interface
+
+Start the Gradio interface with:
+
+``` bash
+python app.py
+```
+
+The GUI contains three main sections:
+
+-   **Data** --- upload and visualize the dataset and define the
+    chronological train/validation/test split.
+-   **LSTM** --- train a new LSTM or use a pretrained model, inspect
+    metrics and predictions, download configuration and weights, and run
+    random-search tuning.
+-   **ESN** --- equivalent workflow for the Echo State Network.
+
+When training a new model, hyperparameters can be entered manually or
+pre-filled from a JSON configuration. Pretrained models require the
+corresponding JSON configuration and `.pt` weights.
+
+## Hyperparameter Tuning
+
+Random-search tuning can be launched from the GUI or through:
+
+``` bash
+python fine_tuning.py
+```
+
+Search spaces are defined in:
+
+``` text
+fine_tuning/input/search_spaces/
+```
+
+Each configuration can be evaluated over multiple random seeds.
+Configurations are ranked using their **mean validation loss**.
+
+The tuning procedure returns the best hyperparameter configuration. To
+obtain final model weights for that configuration, train the
+corresponding model again using the selected configuration.
+
+## Reproducibility
+
+The project uses a configurable random seed for Python/NumPy/PyTorch
+operations. The seed is reset before running each model so that LSTM and
+ESN results do not depend on the order in which the models are executed.
+
+## Outputs
+
+The main experiment generates:
+
+-   `results.csv` with train, validation, and test MSE plus execution
+    times;
+-   the input time-series plot;
+-   LSTM training/validation loss plot when training is performed;
+-   LSTM test predictions;
+-   ESN test predictions;
+-   saved `.pt` model weights.
+
+The GUI additionally allows the current model configuration, weights,
+and best configurations found by random search to be downloaded.
