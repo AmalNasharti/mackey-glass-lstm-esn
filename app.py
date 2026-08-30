@@ -224,41 +224,63 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 gr.Markdown("### Hyperparameters")
 
                 lstm_hidden_size = gr.Number(
-                    value=128,
+                    value=16,
                     label="Hidden size",
-                    info="Suggested for MG17: 8–128",
+                    info=(
+                        "Number of units in the LSTM hidden state. "
+                        "Tested for MG17: 8, 16, 32, 64, 128."
+                    ),
                     precision=0
                 )
 
                 lstm_sequence_length = gr.Number(
-                    value=100,
+                    value=20,
                     label="Sequence length",
-                    info="Suggested for MG17: 10–100",
+                    info=(
+                        "Number of previous time steps used to predict the next value. "
+                        "Tested for MG17: 10, 20, 30, 50, 100."
+                    ),
                     precision=0
                 )
 
                 lstm_batch_size = gr.Number(
                     value=16,
                     label="Batch size",
-                    info="Suggested for MG17: 16–128",
+                    info=(
+                        "Number of training samples processed before each parameter update. "
+                        "Tested for MG17: 16, 32, 64, 128."
+                    ),
                     precision=0
                 )
 
                 lstm_learning_rate = gr.Number(
                     value=0.001,
                     label="Learning rate",
-                    info="Suggested for MG17: 1e-4–1e-2"
+                    info=(
+                        "Step size used by the optimizer to update the model parameters. "
+                        "Tested for MG17: 1e-4 to 1e-2."
+                    )
                 )
 
                 lstm_num_epochs = gr.Number(
                     value=100,
                     label="Number of epochs",
+                    info=(
+                        "Maximum number of complete passes through the training set. "
+                        "Training may stop earlier due to early stopping. "
+                        "Tested for MG17: 50, 100, 150, 200."
+                    ),
                     precision=0
                 )
 
                 lstm_patience = gr.Number(
                     value=5,
                     label="Early stopping patience",
+                    info=(
+                        "Number of consecutive epochs without validation loss improvement "
+                        "allowed before stopping training. "
+                        "Tested for MG17: 5, 10, 15."
+                    ),
                     precision=0
                 )
 
@@ -477,12 +499,19 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     lstm_n_trials = gr.Number(
                         value=5,
                         label="Number of trials",
+                        info=(
+                            "Number of different hyperparameter configurations evaluated "
+                            "during the random search."
+                        ),
                         precision=0
                     )
 
                     lstm_n_seeds = gr.Number(
                         value=1,
                         label="Runs per configuration",
+                        info=(
+                            "Number of times each configuration is evaluated using different random seeds. "
+                        ),
                         precision=0
                     )
 
@@ -520,6 +549,14 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     fn=utils.get_best_lstm_config_file,
                     inputs=[],
                     outputs=best_lstm_config_download
+                )
+
+                gr.Markdown(
+                    """
+                    **Note:** Random search identifies the best hyperparameter configuration but does not
+                    generate the final model weights. To obtain the corresponding weights, load the
+                    downloaded configuration in **Train New Model** and run the LSTM again.
+                    """
                 )
                         
 
@@ -569,45 +606,71 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 esn_reservoir_size = gr.Number(
                     value=100,
                     label="Reservoir size",
-                    info="Suggested for MG17: 50–200",
+                    info=(
+                        "Number of recurrent units in the reservoir. "
+                        "Tested for MG17: 50–200."
+                    ),
                     precision=0
                 )
 
                 esn_spectral_radius = gr.Number(
                     value=0.9,
                     label="Spectral radius",
-                    info="Suggested for MG17: 0.70–0.99"
+                    info=(
+                        "Controls the scaling of the recurrent reservoir weights "
+                        "and influences the reservoir dynamics. "
+                        "Tested for MG17: 0.70–0.99."
+                    )
                 )
 
                 esn_reservoir_connectivity = gr.Number(
                     value=0.05,
                     label="Reservoir connectivity",
-                    info="Suggested for MG17: 0.01–0.10"
+                    info=(
+                        "Fraction of non-zero recurrent connections in the reservoir. "
+                        "Tested for MG17: 0.01–0.10."
+                    )
                 )
 
                 esn_input_scaling = gr.Number(
                     value=0.5,
                     label="Input scaling",
-                    info="Suggested for MG17: 0.10–1.00"
+                    info=(
+                        "Scaling factor applied to the input weights before the input "
+                        "enters the reservoir. "
+                        "Tested for MG17: 0.10–1.00."
+                    )
                 )
 
                 esn_washout = gr.Number(
                     value=100,
                     label="Washout",
-                    info="Suggested for MG17: 50–500",
+                    info=(
+                        "Number of initial reservoir states discarded before fitting "
+                        "the output weights. "
+                        "Tested for MG17: 50–500."
+                    ),
                     precision=0
                 )
 
                 esn_alpha = gr.Number(
                     value=0.1,
                     label="Alpha",
-                    info="Suggested for MG17: 0.05–1.00"
+                    info=(
+                        "Controls the contribution of the previous reservoir state "
+                        "in the leaky integration update. "
+                        "Tested for MG17: 0.05–1.00."
+                    )
                 )
 
                 esn_ridge = gr.Number(
                     value=1e-6,
                     label="Ridge",
-                    info="Suggested for MG17: 1e-8–1e-4"
+                    info=(
+                        "Regularization coefficient used when fitting the output weights "
+                        "with ridge regression. "
+                        "Tested for MG17: 1e-8–1e-4."
+                    )
                 )
 
                 # If a JSON is uploaded, use it to fill the fields
@@ -825,6 +888,10 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     esn_n_trials = gr.Number(
                         value=150,
                         label="Number of trials",
+                        info=(
+                            "Number of different hyperparameter configurations evaluated "
+                            "during the random search."
+                        ),
                         precision=0
                     )
 
@@ -832,8 +899,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                         value=10,
                         label="Runs per configuration",
                         info=(
-                            "Number of runs with different random seeds used "
-                            "to evaluate each configuration."
+                            "Number of times each configuration is evaluated using different random seeds. "
                         ),
                         precision=0
                     )
@@ -872,6 +938,14 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     fn=utils.get_best_esn_config_file,
                     inputs=[],
                     outputs=best_esn_config_download
+                )
+
+                gr.Markdown(
+                    """
+                    **Note:** Random search identifies the best hyperparameter configuration but does not
+                    generate the final model weights. To obtain the corresponding weights, load the
+                    downloaded configuration in **Train New Model** and run the ESN again.
+                    """
                 )
 
 
