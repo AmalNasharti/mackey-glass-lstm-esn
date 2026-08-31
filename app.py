@@ -223,8 +223,15 @@ with gr.Blocks(title="Time Series Prediction") as demo:
 
                 gr.Markdown("### Hyperparameters")
 
+                gr.Markdown(
+                    """
+                    The default hyperparameter values correspond to the best configuration
+                    obtained for MG17 using random search.
+                    """
+                )
+
                 lstm_hidden_size = gr.Number(
-                    value=16,
+                    value=32,
                     label="Hidden size",
                     info=(
                         "Number of units in the LSTM hidden state. "
@@ -234,7 +241,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 lstm_sequence_length = gr.Number(
-                    value=20,
+                    value=100,
                     label="Sequence length",
                     info=(
                         "Number of previous time steps used to predict the next value. "
@@ -254,7 +261,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 lstm_learning_rate = gr.Number(
-                    value=0.001,
+                    value=0.0022938595363362463,
                     label="Learning rate",
                     info=(
                         "Step size used by the optimizer to update the model parameters. "
@@ -263,7 +270,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 lstm_num_epochs = gr.Number(
-                    value=100,
+                    value=50,
                     label="Number of epochs",
                     info=(
                         "Maximum number of complete passes through the training set. "
@@ -274,7 +281,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 lstm_patience = gr.Number(
-                    value=5,
+                    value=15,
                     label="Early stopping patience",
                     info=(
                         "Number of consecutive epochs without validation loss improvement "
@@ -486,11 +493,23 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     Random search evaluates multiple LSTM hyperparameter configurations
                     and returns the best configuration found.
 
-                    **Note:** Execution time depends on the number of trials and runs per configuration
-                    and may take several hours when running on CPU. The default settings provide a
-                    faster search and typically take around 5 minutes on CPU.
+                    **Note:** Execution time depends on the number of trials, runs per configuration,
+                    and available hardware. The default settings provide a faster search and typically
+                    take around 5 minutes on AMD Ryzen 7 5700U CPU.
 
-                    **Best configuration found:** *TO DO: insert best configuration.*
+                    A more extensive random search with `50 trials` and `5 runs per configuration`
+                    required approximately 4.5 hours on an AMD Ryzen 7 5700U CPU.
+
+                    **Best configuration found with 50 trials and 5 runs per configuration (MG17):**
+                    - `hidden_size = 32`
+                    - `sequence_length = 100`
+                    - `batch_size = 16`
+                    - `learning_rate = 0.0022938595363362463`
+                    - `num_epochs = 50`
+                    - `patience = 15`
+
+                    The hyperparameters of this best configuration are used as the default values
+                    in the **Train New Model** section.
                     """
                 )
 
@@ -603,8 +622,15 @@ with gr.Blocks(title="Time Series Prediction") as demo:
 
                 gr.Markdown("### Hyperparameters")
 
+                gr.Markdown(
+                    """
+                    The default hyperparameter values correspond to the best configuration
+                    obtained for MG17 using random search.
+                    """
+                )
+
                 esn_reservoir_size = gr.Number(
-                    value=100,
+                    value=61,
                     label="Reservoir size",
                     info=(
                         "Number of recurrent units in the reservoir. "
@@ -614,7 +640,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 esn_spectral_radius = gr.Number(
-                    value=0.9,
+                    value=0.7940686533665776,
                     label="Spectral radius",
                     info=(
                         "Controls the scaling of the recurrent reservoir weights "
@@ -624,7 +650,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 esn_reservoir_connectivity = gr.Number(
-                    value=0.05,
+                    value=0.015050730529450624,
                     label="Reservoir connectivity",
                     info=(
                         "Fraction of non-zero recurrent connections in the reservoir. "
@@ -633,7 +659,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 esn_input_scaling = gr.Number(
-                    value=0.5,
+                    value=0.4226170080703271,
                     label="Input scaling",
                     info=(
                         "Scaling factor applied to the input weights before the input "
@@ -643,7 +669,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 esn_washout = gr.Number(
-                    value=100,
+                    value=300,
                     label="Washout",
                     info=(
                         "Number of initial reservoir states discarded before fitting "
@@ -654,7 +680,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 esn_alpha = gr.Number(
-                    value=0.1,
+                    value=0.2310128161294586,
                     label="Alpha",
                     info=(
                         "Controls the contribution of the previous reservoir state "
@@ -664,7 +690,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                 )
 
                 esn_ridge = gr.Number(
-                    value=1e-6,
+                    value=1.3324940320570245e-06,
                     label="Ridge",
                     info=(
                         "Regularization coefficient used when fitting the output weights "
@@ -873,13 +899,26 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     and returns the best configuration found.
 
                     **Note:** ESN tuning is generally faster than LSTM tuning, but execution
-                    time still depends on the number of trials and runs per configuration.
+                    time depends on the number of trials, runs per configuration, and available hardware.
 
-                    Suggested settings:
+                    Suggested settings for MG17:
                     - `trials = 150`
                     - `runs per configuration = 10`
 
-                    **Best configuration found:** *TO DO: insert best configuration.*
+                    With the suggested settings, the random search takes approximately 5 minutes
+                    on AMD Ryzen 7 5700U CPU.
+
+                    **Best configuration found with the suggested settings (MG17):**
+                    - `reservoir_size = 61`
+                    - `spectral_radius = 0.7940686533665776`
+                    - `reservoir_connectivity = 0.015050730529450624`
+                    - `input_scaling = 0.4226170080703271`
+                    - `washout = 300`
+                    - `alpha = 0.2310128161294586`
+                    - `ridge = 1.3324940320570245e-06`
+
+                    The hyperparameters of this best configuration are used as the default values
+                    in the **Train New Model** section.
                     """
                 )
 
