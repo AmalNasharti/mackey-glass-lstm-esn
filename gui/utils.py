@@ -151,7 +151,10 @@ def save_dataset(file):
 
 def load_lstm_config(config_file):
     """
-    Load an LSTM configuration from a JSON file.
+    Load LSTM hyperparameters from a JSON configuration file.
+
+    The configuration file is validated to ensure that all required
+    hyperparameters are present.
 
     Parameters
     ----------
@@ -161,13 +164,24 @@ def load_lstm_config(config_file):
     Returns
     -------
     hidden_size : int
-        Number of LSTM hidden units.
+        Number of hidden units in the LSTM layer.
     sequence_length : int
-        Length of the input sequences.
+        Number of previous time steps used to predict the next value.
     batch_size : int
-        Training batch size.
+        Number of training samples per batch.
     learning_rate : float
         Optimizer learning rate.
+    num_epochs : int
+        Maximum number of training epochs.
+    patience : int
+        Number of consecutive epochs without validation loss improvement
+        allowed before early stopping.
+
+    Raises
+    ------
+    gr.Error
+        If no configuration file is provided or if one or more required
+        hyperparameters are missing.
     """
 
     if config_file is None:
@@ -281,6 +295,19 @@ def load_esn_config(config_file):
     )
 
 def get_lstm_config_file():
+    """
+    Return the path to the current LSTM configuration file.
+
+    Returns
+    -------
+    config_path : str
+        Path to the LSTM JSON configuration file.
+
+    Raises
+    ------
+    gr.Error
+        If no LSTM configuration file is available.
+    """
     if not CONFIG_PATH_LSTM.exists():
         raise gr.Error(
             "No LSTM configuration is available. Run the model first."
@@ -289,6 +316,19 @@ def get_lstm_config_file():
     return str(CONFIG_PATH_LSTM)
 
 def get_lstm_weights_file():
+    """
+    Return the path to the current LSTM weights file.
+
+    Returns
+    -------
+    weights_path : str
+        Path to the LSTM weights file.
+
+    Raises
+    ------
+    gr.Error
+        If no LSTM weights file is available.
+    """
     if not WEIGHTS_PATH_LSTM.exists():
         raise gr.Error(
             "No LSTM weights are available. Run the model first."
@@ -298,7 +338,17 @@ def get_lstm_weights_file():
 
 def get_esn_config_file():
     """
-    Return the current ESN configuration file.
+    Return the path to the current ESN configuration file.
+
+    Returns
+    -------
+    config_path : str
+        Path to the ESN JSON configuration file.
+
+    Raises
+    ------
+    gr.Error
+        If no ESN configuration file is available.
     """
 
     if not CONFIG_PATH_ESN.exists():
@@ -311,7 +361,17 @@ def get_esn_config_file():
 
 def get_esn_weights_file():
     """
-    Return the current ESN weights file.
+    Return the path to the current ESN weights file.
+
+    Returns
+    -------
+    weights_path : str
+        Path to the ESN weights file.
+
+    Raises
+    ------
+    gr.Error
+        If no ESN weights file is available.
     """
 
     if not WEIGHTS_PATH_ESN.exists():
@@ -324,7 +384,18 @@ def get_esn_weights_file():
 
 def get_best_lstm_config_file():
     """
-    Return the best LSTM configuration found by random search.
+    Return the path to the best LSTM configuration found by random search.
+
+    Returns
+    -------
+    config_path : str
+        Path to the JSON file containing the best LSTM configuration
+        found by random search.
+
+    Raises
+    ------
+    gr.Error
+        If no tuned LSTM configuration file is available.
     """
 
     if not BEST_CONFIG_PATH_LSTM.exists():
@@ -337,7 +408,18 @@ def get_best_lstm_config_file():
 
 def get_best_esn_config_file():
     """
-    Return the best ESN configuration found by random search.
+    Return the path to the best ESN configuration found by random search.
+
+    Returns
+    -------
+    config_path : str
+        Path to the JSON file containing the best ESN configuration
+        found by random search.
+
+    Raises
+    ------
+    gr.Error
+        If no tuned ESN configuration file is available.
     """
 
     if not BEST_CONFIG_PATH_ESN.exists():
@@ -1020,11 +1102,12 @@ def run_random_search_from_gui(
     best_results_path
 ):
     """
-    Run random hyperparameter tuning from the GUI.
+    Run random-search hyperparameter tuning from the GUI.
 
     A new random search is started every time the function is called.
-    Each sampled configuration is evaluated over multiple random seeds,
-    and the configuration with the lowest mean validation loss is returned.
+    Random hyperparameter configurations are generated from the specified
+    search space, and each configuration is evaluated over multiple random
+    seeds. The configuration with the lowest mean validation loss is selected.
 
     Parameters
     ----------
@@ -1039,22 +1122,26 @@ def run_random_search_from_gui(
     n_trials : int
         Number of random hyperparameter configurations to evaluate.
     n_seeds : int
-        Number of random seeds used for each configuration.
+        Number of random seeds used to evaluate each configuration.
     search_space_path : str or Path
         Path to the JSON file containing the hyperparameter search space.
     configs_path : str or Path
-        Path where generated configurations are saved.
+        Path where the generated configurations are saved.
     results_path : str or Path
-        Path where tuning results are saved.
+        Path where the random-search results are saved.
     best_results_path : str or Path
-        Path where the best tuning result is saved.
+        Path where the best result found is saved.
 
     Returns
     -------
     best_config : dict
         Best hyperparameter configuration found.
-    best_val_loss : float
-        Mean validation loss of the best configuration.
+
+    Raises
+    ------
+    gr.Error
+        If no dataset has been uploaded, if the dataset has not been split,
+        or if the number of trials or seeds is smaller than 1.
     """
 
     # Check that a dataset has been uploaded
