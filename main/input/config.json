@@ -1,5 +1,5 @@
 {
-    "seed": 42, 
+    "seed": 0, 
     
     "data": {
         "train_end": 6000,
@@ -8,22 +8,22 @@
 
     "lstm": {
         "input_size": 1,
-        "hidden_size": 16,
+        "hidden_size": 32,
         "output_size": 1,
-        "sequence_length": 20,
+        "sequence_length": 100,
         "batch_size": 16,
-        "learning_rate": 0.001,
-        "num_epochs": 150,
+        "learning_rate": 0.0022938595363362463,
+        "num_epochs": 50,
         "patience": 15
     },
 
     "esn": {
-        "reservoir_size": 100,
-        "spectral_radius": 0.9,
-        "reservoir_connectivity": 0.05,
-        "input_scaling": 0.4,
-        "washout": 150,
-        "alpha": 0.2,
-        "ridge": 1.3e-06
+        "reservoir_size": 61,
+        "spectral_radius": 0.7940686533665776,
+        "reservoir_connectivity": 0.015050730529450624,
+        "input_scaling": 0.4226170080703271,
+        "washout": 300,
+        "alpha": 0.2310128161294586,
+        "ridge": 1.3324940320570245e-06
     }
 }

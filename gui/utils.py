@@ -13,7 +13,7 @@ from fine_tuning.source_code import tuning
 
 NUM_EPOCHS = 100
 PATIENCE = 5
-SEED = 42
+SEED = 0
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
