@@ -20,6 +20,8 @@ The repository is organized into three main workflows, which can be executed ind
 - **Graphical user interface — `app.py`**  
   Launches the Gradio-based interface for loading and preprocessing data, training or loading pretrained models, performing hyperparameter tuning, visualizing results, and downloading model configurations and weights.
 
+**Note:** The model configurations, weights, metrics, and plots included in the repository refer to the best LSTM and ESN hyperparameter configurations identified through random search.
+
 ## Main Experiment — `main.py`
 
 The `main.py` script runs the complete LSTM and ESN prediction pipeline. All the files required by this workflow are contained in the `main/` directory, which is organized as follows:
