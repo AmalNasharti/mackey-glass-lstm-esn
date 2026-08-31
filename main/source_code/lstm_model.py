@@ -5,7 +5,6 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn as nn
 import torch.optim as optim
-import copy
 import time
 
 def create_sequences(data, seq_len):
@@ -15,7 +14,7 @@ def create_sequences(data, seq_len):
 
     Parameters
     ----------
-    data : pd.DataFrame
+    data : pd.Series
         Input time series.
     seq_len : int
         Number of time steps in each input sequence.
@@ -71,19 +70,28 @@ def create_lstm_data(train_norm, val_norm, test_norm, seq_len):
 
 def create_dataloaders(X_train, y_train, X_val, y_val, X_test, y_test, batch_size):
     """
-    Create PyTorch datasets and data loaders for training,
-    validation, testing.
+    Create PyTorch DataLoaders for training, validation, testing,
+    and chronologically ordered training predictions.
+
+    Parameters
+    ----------
+    X_train, X_val, X_test : torch.Tensor
+        Input sequences for the training, validation, and test sets.
+    y_train, y_val, y_test : torch.Tensor
+        Corresponding one-step-ahead target values.
+    batch_size : int
+        Number of samples per batch.
 
     Returns
     -------
     train_loader : DataLoader
-        Training loader with shuffled samples.
+        Training DataLoader with shuffled samples.
     val_loader : DataLoader
-        Validation loader with samples in chronological order.
+        Validation DataLoader without shuffling.
     test_loader : DataLoader
-        Test loader with samples in chronological order.
+        Test DataLoader without shuffling.
     train_loader_plot : DataLoader
-        Training loader without shuffling, used to generate
+        Training DataLoader without shuffling, used to generate
         chronologically ordered predictions.
     """
 
@@ -169,19 +177,48 @@ def train_model(
     
 ):
     """
-    Train the model using mini-batch gradient descent and evaluate it
-    on the validation set after each epoch.
+    Train the model and evaluate its performance on the validation set
+    after each epoch.
 
-    Early stopping is applied when the validation loss does not improve
-    for a specified number of consecutive epochs. Best weight are saved.
+    Early stopping is triggered when the validation loss does not improve
+    for a specified number of consecutive epochs. When weight saving is
+    enabled, the weights corresponding to the lowest validation loss are
+    saved and restored at the end of training.
+
+    Parameters
+    ----------
+    model : nn.Module
+        LSTM model to train.
+    train_loader : DataLoader
+        DataLoader containing the training samples.
+    val_loader : DataLoader
+        DataLoader containing the validation samples.
+    criterion : torch.nn.Module
+        Loss function used for training and validation.
+    optimizer : torch.optim.Optimizer
+        Optimizer used to update the model parameters.
+    device : torch.device
+        Device used for model training.
+    num_epochs : int
+        Maximum number of training epochs.
+    patience : int
+        Number of consecutive epochs without validation loss improvement
+        allowed before early stopping.
+    weights_path : str or Path, optional
+        Path where the best model weights are saved.
+    save_weights : bool, default=True
+        If True, save and restore the weights corresponding to the lowest
+        validation loss.
+    verbose : bool, default=True
+        If True, print training progress and early-stopping information.
 
     Returns
     -------
     train_losses : list
-        Average training loss for each epoch.
+        Average training loss recorded at each completed epoch.
     val_losses : list
-        Average validation loss for each epoch.
-    """ 
+        Average validation loss recorded at each completed epoch.
+    """
     best_val_loss = float("inf")
     epochs_no_improve = 0
 
@@ -295,8 +332,9 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path=None,
     Run the complete LSTM training and inference pipeline.
 
     The function creates sliding-window input-target pairs, builds the
-    DataLoaders, initializes and trains the LSTM model, and generates
-    predictions for the training, validation, and test sets.
+    DataLoaders, initializes the LSTM model, optionally trains or loads
+    pretrained weights, and generates predictions for the training,
+    validation, and test sets.
 
     Parameters
     ----------
@@ -307,28 +345,31 @@ def run_lstm(train_norm, val_norm, test_norm, config, device, weights_path=None,
     test_norm : pd.Series
         Normalized test time series.
     config : dict
-        LSTM configuration containing the model and training
-        hyperparameters.
+        LSTM configuration containing model and training hyperparameters.
     device : torch.device
         Device used for model training and inference.
-    weights_path: str or Path
-        Path to save weights.
-    load_pretrained: Bool (default: False)
-        If true weights from a previous run are loaded and no 
-        training is performed. 
-    save_weights: Bool (default: True)
-        If true weighs are saved   
+    weights_path : str or Path, optional
+        Path used to save or load the model weights.
+    load_pretrained : bool, default=False
+        If True, load previously saved weights and skip model training.
+    save_weights : bool, default=True
+        If True, save the best weights during training.
 
     Returns
     -------
     results : dict
         Dictionary containing:
-        - model: trained LSTM model.
-        - train_pred: training predictions in the normalized scale.
-        - val_pred: validation predictions in the normalized scale.
-        - test_pred: test predictions in the normalized scale.
-        - train_losses: training loss recorded at each epoch.
-        - val_losses: validation loss recorded at each epoch.
+        - model : trained or loaded LSTM model.
+        - train_pred : training predictions in the normalized scale.
+        - val_pred : validation predictions in the normalized scale.
+        - test_pred : test predictions in the normalized scale.
+        - train_losses : training losses for each completed epoch, or None
+          when pretrained weights are used.
+        - val_losses : validation losses for each completed epoch, or None
+          when pretrained weights are used.
+        - training_time : training time in seconds, or None when pretrained
+          weights are used.
+        - inference_time : test-set inference time in seconds.
     """
     # Create sliding window data
     X_train, y_train, X_val, y_val, X_test, y_test = create_lstm_data(train_norm, val_norm, test_norm, config["sequence_length"])
