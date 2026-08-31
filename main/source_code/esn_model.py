@@ -74,17 +74,29 @@ def create_esn_data(train_norm, val_norm, test_norm):
 class EchoStateNetwork(nn.Module):
 
     """
-    Echo State Network for univariate time-series prediction.
+    Echo State Network for univariate one-step-ahead time-series prediction.
 
-    The input and reservoir weights are randomly initialized and kept fixed.
-    Only the output weights are fitted, using the Moore-Penrose pseudo-inverse.
+    The input and recurrent reservoir weights are randomly initialized
+    and kept fixed. Only the output weights are fitted using ridge regression.
 
     Parameters
     ----------
     reservoir_size : int
-        Number of units in the reservoir.
+        Number of recurrent units in the reservoir.
     spectral_radius : float
-        Desired spectral radius of the recurrent reservoir matrix.
+        Desired spectral radius of the recurrent reservoir weight matrix.
+    reservoir_connectivity : float
+        Fraction of non-zero recurrent connections in the reservoir.
+    input_scaling : float
+        Scaling factor applied to the input weights.
+    alpha : float
+        Leaky integration parameter controlling the contribution of the
+        previous reservoir state.
+    washout : int
+        Number of initial reservoir states discarded before fitting
+        the output weights.
+    ridge : float
+        Ridge regularization coefficient used to fit the output weights.
     """
 
     def __init__(self, reservoir_size, spectral_radius, reservoir_connectivity, input_scaling, alpha, washout, ridge):
@@ -144,7 +156,7 @@ class EchoStateNetwork(nn.Module):
 
     def run_reservoir(self, input_data):
         """
-        Run the input sequence through the reservoir.
+        Propagate an input sequence through the reservoir.
 
         Parameters
         ----------
@@ -216,7 +228,7 @@ class EchoStateNetwork(nn.Module):
 
         Returns
         -------
-        predictions : np.ndarray
+        predictions : torch.Tensor
             Predicted values with shape (T, 1).
         """
         reservoir_states = self.run_reservoir(input_data)
@@ -227,12 +239,12 @@ class EchoStateNetwork(nn.Module):
 
 def run_esn(train_norm, val_norm, test_norm, config, device, weights_path, load_pretrained=False):
     """
-    Run the complete ESN fitting and inference pipeline.
+    Run the complete ESN training and inference pipeline.
 
     The function creates one-step-ahead input-target pairs, initializes
-    the Echo State Network, fits the output weights using the training
-    data, and generates predictions for the training, validation, and
-    test sets.
+    the Echo State Network, optionally fits the output weights or loads
+    pretrained weights, and generates predictions for the training,
+    validation, and test sets.
 
     Parameters
     ----------
@@ -245,21 +257,23 @@ def run_esn(train_norm, val_norm, test_norm, config, device, weights_path, load_
     config : dict
         ESN configuration containing the model hyperparameters.
     device : torch.device
-        Device used for model computation.
-    weights_path: str or Path
-        Path where to save the weight of the lstm
-    load_pretrained: Bool
-        If True it uses the weights from a previous run, without
-        retraining the network.
+        Device used for model fitting and inference.
+    weights_path : str or Path
+        Path used to save or load the ESN weights.
+    load_pretrained : bool, default=False
+        If True, load previously saved weights and skip model fitting.
 
     Returns
     -------
     results : dict
         Dictionary containing:
-        - model: fitted Echo State Network.
-        - train_pred: training predictions in the normalized scale.
-        - val_pred: validation predictions in the normalized scale.
-        - test_pred: test predictions in the normalized scale.
+        - model : fitted or loaded Echo State Network.
+        - train_pred : training predictions in the normalized scale.
+        - val_pred : validation predictions in the normalized scale.
+        - test_pred : test predictions in the normalized scale.
+        - training_time : fitting time in seconds, or None when pretrained
+          weights are used.
+        - inference_time : test-set inference time in seconds.
     """
     # Create one-step-ahead input-target pairs
     X_train, y_train, X_val, y_val, X_test, y_test = create_esn_data(train_norm, val_norm, test_norm)
