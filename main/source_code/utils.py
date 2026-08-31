@@ -92,7 +92,7 @@ def inverse_zscore(data, mean, std):
 
     Returns
     -------
-    data_orig : same type as input when possible
+    data_orig : torch.Tensor or array-like
         Data transformed back to the original scale.
     """
 
@@ -114,7 +114,7 @@ def mse(y_true, y_pred):
 
     Returns
     -------
-    mse : torch.Tensor
+    mse : float
         Mean Squared Error between the actual and predicted values.
     """
 
@@ -130,7 +130,7 @@ def mse(y_true, y_pred):
 
 def save_original_time_series(data, save_path, n_points=1000):
     """
-    Save the first n points of a time series.
+    Plot and save the first n points of a time series.
 
     Parameters
     ----------
@@ -157,7 +157,7 @@ def save_original_time_series(data, save_path, n_points=1000):
     
 def save_losses(train_losses, val_losses, save_path):
     """
-    Save the training and validation loss over the training epochs.
+    Plot and save the training and validation loss over the training epochs.
 
     Parameters
     ----------
@@ -186,7 +186,7 @@ def save_losses(train_losses, val_losses, save_path):
 
 def save_predictions(y_actual, y_pred, model_name, save_path, n_points=1000):
     """
-    Save actual and predicted values of the Mackey-Glass time series.
+    Plot and save actual and predicted values of the Mackey-Glass time series.
 
     Parameters
     ----------
@@ -196,10 +196,10 @@ def save_predictions(y_actual, y_pred, model_name, save_path, n_points=1000):
         Model predictions.
     model_name : str
         Name of the model used for the predictions.
-    save_path: str
+    save_path: str or Path
         Path where to save the plot.
-    n_points : int
-        Number of time steps to display.
+    n_points : default=1000
+        Maximum number of time steps to display.
     """
 
     plt.figure(figsize=(12, 5))
@@ -232,6 +232,8 @@ def clear_directory(dir):
     """
     Remove all files from the specified directory.
 
+    Subdirectories, if present, are preserved.
+    
     Parameters
     ----------
     dir : str or Path
