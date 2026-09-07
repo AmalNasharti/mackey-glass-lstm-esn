@@ -234,7 +234,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     value=32,
                     label="Hidden size",
                     info=(
-                        "Number of units in the LSTM hidden state. "
+                        "Dimension of the LSTM hidden state. "
                         "Tested for MG17: 8, 16, 32, 64, 128."
                     ),
                     precision=0
@@ -633,7 +633,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     value=61,
                     label="Reservoir size",
                     info=(
-                        "Number of recurrent units in the reservoir. "
+                        "Number of neurons in the reservoir. "
                         "Tested for MG17: 50–200."
                     ),
                     precision=0
@@ -643,8 +643,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     value=0.7940686533665776,
                     label="Spectral radius",
                     info=(
-                        "Controls the scaling of the recurrent reservoir weights "
-                        "and influences the reservoir dynamics. "
+                        "Largest absolute eigenvalue of the reservoir weight matrix."
                         "Tested for MG17: 0.70–0.99."
                     )
                 )
@@ -683,8 +682,7 @@ with gr.Blocks(title="Time Series Prediction") as demo:
                     value=0.2310128161294586,
                     label="Alpha",
                     info=(
-                        "Controls the contribution of the previous reservoir state "
-                        "in the leaky integration update. "
+                        "Leaking parameter controlling the contribution of the previous reservoir state in the leaky state update."
                         "Tested for MG17: 0.05–1.00."
                     )
                 )
